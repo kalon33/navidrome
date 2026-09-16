@@ -2,7 +2,7 @@
 
 A minimal, in-memory podcast backend plugin that implements the Navidrome
 **Podcast** capability and serves the Subsonic podcast API endpoints
-(`getPodcasts`, `getNewestPodcasts`, `createPodcastChannel`, `refreshPodcasts`,
+(`getPodcasts`, `getNewestPodcasts`, `getPodcastEpisode`, `createPodcastChannel`, `refreshPodcasts`,
 `downloadPodcastEpisode`, `deletePodcastChannel`, `deletePodcastEpisode`).
 
 It serves a single hard-coded channel with one episode, and treats the

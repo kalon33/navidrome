@@ -59,6 +59,18 @@ type GetNewestEpisodesResponse struct {
 	Episodes []PodcastEpisode `json:"episodes"`
 }
 
+// GetPodcastEpisodeRequest is the request for GetEpisode.
+type GetPodcastEpisodeRequest struct {
+	// ID is the podcast episode ID.
+	ID string `json:"id"`
+}
+
+// GetPodcastEpisodeResponse is the response for GetEpisode.
+type GetPodcastEpisodeResponse struct {
+	// Episode is the requested podcast episode.
+	Episode *PodcastEpisode `json:"episode,omitempty"`
+}
+
 // CreatePodcastChannelRequest is the request for CreateChannel.
 type CreatePodcastChannelRequest struct {
 	// URL is the feed URL of the podcast to subscribe to.
@@ -215,6 +227,11 @@ type GetChannelProvider interface {
 // GetNewestEpisodesProvider provides the GetNewestEpisodes function.
 type GetNewestEpisodesProvider interface {
 	GetNewestEpisodes(GetNewestEpisodesRequest) (*GetNewestEpisodesResponse, error)
+}
+
+// GetEpisodeProvider provides the GetEpisode function.
+type GetEpisodeProvider interface {
+	GetEpisode(GetPodcastEpisodeRequest) (*GetPodcastEpisodeResponse, error)
 }
 
 // CreateChannelProvider provides the CreateChannel function.

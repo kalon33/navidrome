@@ -233,6 +233,7 @@ func (api *Router) routes() http.Handler {
 			r.Use(getPlayer(api.players))
 			h(r, "getPodcasts", api.GetPodcasts)
 			h(r, "getNewestPodcasts", api.GetNewestPodcasts)
+			h(r, "getPodcastEpisode", api.GetPodcastEpisode)
 			r.Group(func(r chi.Router) {
 				r.Use(adminOnly)
 				h(r, "createPodcastChannel", api.CreatePodcastChannel)

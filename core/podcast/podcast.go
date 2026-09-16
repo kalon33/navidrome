@@ -17,6 +17,7 @@ var ErrNoProvider = errors.New("no podcast provider plugin configured")
 type Provider interface {
 	GetChannels(ctx context.Context, includeEpisodes bool) ([]capabilities.PodcastChannel, error)
 	GetChannel(ctx context.Context, id string, includeEpisodes bool) (*capabilities.PodcastChannel, error)
+	GetEpisode(ctx context.Context, id string) (*capabilities.PodcastEpisode, error)
 	GetNewestEpisodes(ctx context.Context, count int) ([]capabilities.PodcastEpisode, error)
 	CreateChannel(ctx context.Context, url string) (*capabilities.PodcastChannel, error)
 	RefreshChannels(ctx context.Context, channelIDs []string) ([]string, error)
@@ -46,6 +47,7 @@ type Engine interface {
 	HasProvider() bool
 	GetChannels(ctx context.Context, includeEpisodes bool) ([]capabilities.PodcastChannel, error)
 	GetChannel(ctx context.Context, id string, includeEpisodes bool) (*capabilities.PodcastChannel, error)
+	GetEpisode(ctx context.Context, id string) (*capabilities.PodcastEpisode, error)
 	GetNewestEpisodes(ctx context.Context, count int) ([]capabilities.PodcastEpisode, error)
 	CreateChannel(ctx context.Context, url string) (*capabilities.PodcastChannel, error)
 	RefreshChannels(ctx context.Context, channelIDs []string) ([]string, error)
@@ -96,6 +98,19 @@ func (p *Podcast) GetChannel(ctx context.Context, id string, includeEpisodes boo
 		return nil, err
 	}
 	return channel, nil
+}
+
+func (p *Podcast) GetEpisode(ctx context.Context, id string) (*capabilities.PodcastEpisode, error) {
+	provider, err := p.loadProvider()
+	if err != nil {
+		return nil, err
+	}
+	episode, err := provider.GetEpisode(ctx, id)
+	if err != nil {
+		log.Error(ctx, "Plugin GetEpisode failed", "id", id, err)
+		return nil, err
+	}
+	return episode, nil
 }
 
 func (p *Podcast) GetNewestEpisodes(ctx context.Context, count int) ([]capabilities.PodcastEpisode, error) {

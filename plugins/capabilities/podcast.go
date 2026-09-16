@@ -6,7 +6,7 @@ package capabilities
 // downloading episodes. Navidrome maps the plugin's data to the Subsonic
 // podcast endpoints (getPodcasts, getNewestPodcasts, createPodcastChannel,
 // refreshPodcasts, downloadPodcastEpisode, deletePodcastChannel,
-// deletePodcastEpisode).
+// deletePodcastEpisode, getPodcastEpisode).
 //
 // Plugins implementing this capability can choose which methods to implement.
 // GetChannels and GetChannel are required to serve getPodcasts; the remaining
@@ -29,6 +29,10 @@ type Podcast interface {
 	// GetNewestEpisodes returns the most recently published podcast episodes.
 	//nd:export name=nd_podcast_get_newest_episodes
 	GetNewestEpisodes(GetNewestEpisodesRequest) (*GetNewestEpisodesResponse, error)
+
+	// GetEpisode returns the metadata for a single podcast episode by ID.
+	//nd:export name=nd_podcast_get_episode
+	GetEpisode(GetPodcastEpisodeRequest) (*GetPodcastEpisodeResponse, error)
 
 	// CreateChannel subscribes to a new podcast channel from the given feed URL.
 	//nd:export name=nd_podcast_create_channel
@@ -102,6 +106,18 @@ type GetNewestEpisodesRequest struct {
 type GetNewestEpisodesResponse struct {
 	// Episodes is the list of most recently published episodes.
 	Episodes []PodcastEpisode `json:"episodes"`
+}
+
+// GetPodcastEpisodeRequest is the request for GetEpisode.
+type GetPodcastEpisodeRequest struct {
+	// ID is the podcast episode ID.
+	ID string `json:"id"`
+}
+
+// GetPodcastEpisodeResponse is the response for GetEpisode.
+type GetPodcastEpisodeResponse struct {
+	// Episode is the requested podcast episode.
+	Episode *PodcastEpisode `json:"episode,omitempty"`
 }
 
 // CreatePodcastChannelRequest is the request for CreateChannel.

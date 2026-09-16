@@ -340,13 +340,14 @@ Each match contains a `song` reference and a `similarity` score (float64, 0.0–
 
 ### Podcast
 
-Provides podcast management and retrieval for the Subsonic API. A plugin implementing this capability acts as the podcast backend: Navidrome maps the plugin's data to the Subsonic podcast endpoints (`getPodcasts`, `getNewestPodcasts`, `createPodcastChannel`, `refreshPodcasts`, `downloadPodcastEpisode`, `deletePodcastChannel`, `deletePodcastEpisode`). All methods are **optional** — implement the ones your backend supports.
+Provides podcast management and retrieval for the Subsonic API. A plugin implementing this capability acts as the podcast backend: Navidrome maps the plugin's data to the Subsonic podcast endpoints (`getPodcasts`, `getNewestPodcasts`, `getPodcastEpisode`, `createPodcastChannel`, `refreshPodcasts`, `downloadPodcastEpisode`, `deletePodcastChannel`, `deletePodcastEpisode`). All methods are **optional** — implement the ones your backend supports.
 
 | Function                          | Input                                       | Output                                       | Description                          |
 |-----------------------------------|---------------------------------------------|---------------------------------------------|--------------------------------------|
 | `nd_podcast_get_channels`         | `{includeEpisodes}`                         | `{channels: [PodcastChannel]}`              | Get all podcast channels             |
 | `nd_podcast_get_channel`          | `{id, includeEpisodes}`                     | `{channel: PodcastChannel}`                 | Get a single podcast channel         |
 | `nd_podcast_get_newest_episodes`  | `{count}`                                   | `{episodes: [PodcastEpisode]}`               | Get the newest podcast episodes      |
+| `nd_podcast_get_episode`          | `{id}`                                      | `{episode?: PodcastEpisode}`                | Get a single podcast episode        |
 | `nd_podcast_create_channel`       | `{url}`                                     | `{channel?: PodcastChannel}`                | Subscribe to a new channel           |
 | `nd_podcast_refresh_channels`     | `{channelIds?}`                             | `{refreshed: [string]}`                     | Refresh feeds for new episodes       |
 | `nd_podcast_download_episode`     | `{id}`                                      | `{episode?: PodcastEpisode}`                | Start downloading an episode         |

@@ -31,6 +31,7 @@ type mockProvider struct {
 	channels       []capabilities.PodcastChannel
 	channel        *capabilities.PodcastChannel
 	newestEpisodes []capabilities.PodcastEpisode
+	episode        *capabilities.PodcastEpisode
 	createErr      error
 	refreshedIDs   []string
 	downloadEp     *capabilities.PodcastEpisode
@@ -47,6 +48,9 @@ func (m *mockProvider) GetChannel(_ context.Context, _ string, _ bool) (*capabil
 }
 func (m *mockProvider) GetNewestEpisodes(_ context.Context, _ int) ([]capabilities.PodcastEpisode, error) {
 	return m.newestEpisodes, nil
+}
+func (m *mockProvider) GetEpisode(_ context.Context, _ string) (*capabilities.PodcastEpisode, error) {
+	return m.episode, nil
 }
 func (m *mockProvider) CreateChannel(_ context.Context, _ string) (*capabilities.PodcastChannel, error) {
 	if m.createErr != nil {
@@ -129,6 +133,12 @@ var _ = Describe("Podcast", func() {
 		It("DeleteEpisode delegates to the provider", func() {
 			Expect(service.DeleteEpisode(ctx, "ep-1")).To(Succeed())
 			Expect(provider.lastEpisodeID).To(Equal("ep-1"))
+		})
+		It("GetEpisode delegates to the provider", func() {
+			provider.episode = &capabilities.PodcastEpisode{ID: "ep-1"}
+			ep, err := service.GetEpisode(ctx, "ep-1")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ep.ID).To(Equal("ep-1"))
 		})
 	})
 })

@@ -29,6 +29,7 @@ var (
 	_ podcast.GetChannelsProvider       = (*demoPlugin)(nil)
 	_ podcast.GetChannelProvider         = (*demoPlugin)(nil)
 	_ podcast.GetNewestEpisodesProvider  = (*demoPlugin)(nil)
+	_ podcast.GetEpisodeProvider        = (*demoPlugin)(nil)
 	_ podcast.CreateChannelProvider     = (*demoPlugin)(nil)
 	_ podcast.RefreshChannelsProvider   = (*demoPlugin)(nil)
 	_ podcast.DownloadEpisodeProvider   = (*demoPlugin)(nil)
@@ -91,6 +92,16 @@ func (p *demoPlugin) GetNewestEpisodes(req podcast.GetNewestEpisodesRequest) (*p
 		episodes = episodes[:req.Count]
 	}
 	return &podcast.GetNewestEpisodesResponse{Episodes: episodes}, nil
+}
+
+func (p *demoPlugin) GetEpisode(req podcast.GetPodcastEpisodeRequest) (*podcast.GetPodcastEpisodeResponse, error) {
+	ch := sampleChannel()
+	for _, ep := range ch.Episodes {
+		if ep.ID == req.ID {
+			return &podcast.GetPodcastEpisodeResponse{Episode: &ep}, nil
+		}
+	}
+	return &podcast.GetPodcastEpisodeResponse{}, nil
 }
 
 func (p *demoPlugin) CreateChannel(req podcast.CreatePodcastChannelRequest) (*podcast.CreatePodcastChannelResponse, error) {

@@ -19,6 +19,7 @@ type fakePodcastEngine struct {
 	channels           []capabilities.PodcastChannel
 	channel            *capabilities.PodcastChannel
 	newestEpisodes     []capabilities.PodcastEpisode
+	episode            *capabilities.PodcastEpisode
 	createErr          error
 	createdChannel     *capabilities.PodcastChannel
 	refreshedIDs       []string
@@ -38,6 +39,9 @@ func (f *fakePodcastEngine) GetChannel(_ context.Context, id string, _ bool) (*c
 }
 func (f *fakePodcastEngine) GetNewestEpisodes(_ context.Context, _ int) ([]capabilities.PodcastEpisode, error) {
 	return f.newestEpisodes, nil
+}
+func (f *fakePodcastEngine) GetEpisode(_ context.Context, _ string) (*capabilities.PodcastEpisode, error) {
+	return f.episode, nil
 }
 func (f *fakePodcastEngine) CreateChannel(_ context.Context, _ string) (*capabilities.PodcastChannel, error) {
 	if f.createErr != nil {
@@ -85,6 +89,11 @@ var _ = Describe("Podcasts", func() {
 
 		It("getNewestPodcasts returns an error when no provider", func() {
 			_, err := api.GetNewestPodcasts(newPodcastRequest("getNewestPodcasts"))
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("getPodcastEpisode returns an error when no provider", func() {
+			_, err := api.GetPodcastEpisode(newPodcastRequest("getPodcastEpisode", "id", "ep-1"))
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -160,6 +169,20 @@ var _ = Describe("Podcasts", func() {
 			Expect(resp.NewestPodcasts).ToNot(BeNil())
 			Expect(resp.NewestPodcasts.Episodes).To(HaveLen(1))
 			Expect(resp.NewestPodcasts.Episodes[0].Id).To(Equal("ep-1"))
+		})
+
+		It("getPodcastEpisode returns the episode", func() {
+			engine.episode = &capabilities.PodcastEpisode{
+				ID:        "ep-1",
+				ChannelID: "ch-1",
+				Title:     "Episode 1",
+				Status:    capabilities.PodcastStatusCompleted,
+			}
+			resp, err := api.GetPodcastEpisode(newPodcastRequest("getPodcastEpisode", "id", "ep-1"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.PodcastEpisode).ToNot(BeNil())
+			Expect(resp.PodcastEpisode.Id).To(Equal("ep-1"))
+			Expect(resp.PodcastEpisode.ChannelId).To(Equal("ch-1"))
 		})
 
 		It("createPodcastChannel delegates to the engine", func() {

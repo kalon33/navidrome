@@ -3,7 +3,6 @@ package subsonic
 import (
 	"net/http"
 
-	"github.com/navidrome/navidrome/core/podcast"
 	"github.com/navidrome/navidrome/plugins/capabilities"
 	"github.com/navidrome/navidrome/server/subsonic/responses"
 	"github.com/navidrome/navidrome/utils/req"
@@ -72,6 +71,26 @@ func (api *Router) GetNewestPodcasts(r *http.Request) (*responses.Subsonic, erro
 	}
 	response := newResponse()
 	response.NewestPodcasts = &responses.NewestPodcasts{Episodes: resp}
+	return response, nil
+}
+
+// GetPodcastEpisode returns the metadata for a single podcast episode by ID.
+func (api *Router) GetPodcastEpisode(r *http.Request) (*responses.Subsonic, error) {
+	if api.podcast == nil || !api.podcast.HasProvider() {
+		return nil, errNoPodcastProvider()
+	}
+	ctx := r.Context()
+	p := req.Params(r)
+	id, err := p.String("id")
+	if err != nil {
+		return nil, err
+	}
+	episode, err := api.podcast.GetEpisode(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	response := newResponse()
+	response.PodcastEpisode = toPodcastEpisodePointer(episode)
 	return response, nil
 }
 
@@ -199,4 +218,12 @@ func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 		PublishDate: ep.PublishDate,
 	}
 	return resp
+}
+
+func toPodcastEpisodePointer(ep *capabilities.PodcastEpisode) *responses.PodcastEpisode {
+	if ep == nil {
+		return nil
+	}
+	r := toPodcastEpisode(*ep)
+	return &r
 }

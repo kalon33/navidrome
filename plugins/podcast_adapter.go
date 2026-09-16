@@ -12,6 +12,7 @@ const CapabilityPodcast Capability = "Podcast"
 const (
 	FuncPodcastGetChannels       = "nd_podcast_get_channels"
 	FuncPodcastGetChannel        = "nd_podcast_get_channel"
+	FuncPodcastGetEpisode        = "nd_podcast_get_episode"
 	FuncPodcastGetNewestEpisodes = "nd_podcast_get_newest_episodes"
 	FuncPodcastCreateChannel     = "nd_podcast_create_channel"
 	FuncPodcastRefreshChannels   = "nd_podcast_refresh_channels"
@@ -25,6 +26,7 @@ func init() {
 		CapabilityPodcast,
 		FuncPodcastGetChannels,
 		FuncPodcastGetChannel,
+		FuncPodcastGetEpisode,
 		FuncPodcastGetNewestEpisodes,
 		FuncPodcastCreateChannel,
 		FuncPodcastRefreshChannels,
@@ -64,6 +66,17 @@ func (p *PodcastPlugin) GetChannel(ctx context.Context, id string, includeEpisod
 		return nil, err
 	}
 	return &resp.Channel, nil
+}
+
+func (p *PodcastPlugin) GetEpisode(ctx context.Context, id string) (*capabilities.PodcastEpisode, error) {
+	req := capabilities.GetPodcastEpisodeRequest{ID: id}
+	resp, err := callPluginFunction[capabilities.GetPodcastEpisodeRequest, capabilities.GetPodcastEpisodeResponse](
+		ctx, p.plugin, FuncPodcastGetEpisode, req,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Episode, nil
 }
 
 func (p *PodcastPlugin) GetNewestEpisodes(ctx context.Context, count int) ([]capabilities.PodcastEpisode, error) {

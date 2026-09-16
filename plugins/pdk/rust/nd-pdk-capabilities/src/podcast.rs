@@ -185,6 +185,24 @@ pub struct GetNewestEpisodesResponse {
     pub episodes: Vec<PodcastEpisode>,
 }
 
+/// GetPodcastEpisodeRequest represents the GetPodcastEpisodeRequest data structure.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetPodcastEpisodeRequest {
+    /// ID is the podcast episode ID.
+    #[serde(default)]
+    pub id: String,
+}
+
+/// GetPodcastEpisodeResponse represents the GetPodcastEpisodeResponse data structure.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetPodcastEpisodeResponse {
+    /// Episode is the requested podcast episode.
+    #[serde(default)]
+    pub episode: Option<PodcastEpisode>,
+}
+
 /// CreatePodcastChannelRequest represents the CreatePodcastChannelRequest data structure.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -311,6 +329,11 @@ pub trait GetNewestEpisodesProvider {
     fn get_newest_episodes(&self, req: GetNewestEpisodesRequest) -> Result<GetNewestEpisodesResponse, Error>;
 }
 
+/// GetEpisodeProvider provides the GetEpisode function.
+pub trait GetEpisodeProvider {
+    fn get_episode(&self, req: GetPodcastEpisodeRequest) -> Result<GetPodcastEpisodeResponse, Error>;
+}
+
 /// CreateChannelProvider provides the CreateChannel function.
 pub trait CreateChannelProvider {
     fn create_channel(&self, req: CreatePodcastChannelRequest) -> Result<CreatePodcastChannelResponse, Error>;
@@ -379,6 +402,22 @@ macro_rules! register_podcast_get_newest_episodes {
         ) -> extism_pdk::FnResult<extism_pdk::Json<$crate::podcast::GetNewestEpisodesResponse>> {
             let plugin = <$plugin_type>::default();
             let result = $crate::podcast::GetNewestEpisodesProvider::get_newest_episodes(&plugin, req.into_inner())?;
+            Ok(extism_pdk::Json(result))
+        }
+    };
+}
+
+/// Register the nd_podcast_get_episode export.
+/// This macro generates the WASM export function for this method.
+#[macro_export]
+macro_rules! register_podcast_get_episode {
+    ($plugin_type:ty) => {
+        #[extism_pdk::plugin_fn]
+        pub fn nd_podcast_get_episode(
+            req: extism_pdk::Json<$crate::podcast::GetPodcastEpisodeRequest>
+        ) -> extism_pdk::FnResult<extism_pdk::Json<$crate::podcast::GetPodcastEpisodeResponse>> {
+            let plugin = <$plugin_type>::default();
+            let result = $crate::podcast::GetEpisodeProvider::get_episode(&plugin, req.into_inner())?;
             Ok(extism_pdk::Json(result))
         }
     };

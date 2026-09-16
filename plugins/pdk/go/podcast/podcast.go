@@ -62,6 +62,18 @@ type GetNewestEpisodesResponse struct {
 	Episodes []PodcastEpisode `json:"episodes"`
 }
 
+// GetPodcastEpisodeRequest is the request for GetEpisode.
+type GetPodcastEpisodeRequest struct {
+	// ID is the podcast episode ID.
+	ID string `json:"id"`
+}
+
+// GetPodcastEpisodeResponse is the response for GetEpisode.
+type GetPodcastEpisodeResponse struct {
+	// Episode is the requested podcast episode.
+	Episode *PodcastEpisode `json:"episode,omitempty"`
+}
+
 // CreatePodcastChannelRequest is the request for CreateChannel.
 type CreatePodcastChannelRequest struct {
 	// URL is the feed URL of the podcast to subscribe to.
@@ -220,6 +232,11 @@ type GetNewestEpisodesProvider interface {
 	GetNewestEpisodes(GetNewestEpisodesRequest) (*GetNewestEpisodesResponse, error)
 }
 
+// GetEpisodeProvider provides the GetEpisode function.
+type GetEpisodeProvider interface {
+	GetEpisode(GetPodcastEpisodeRequest) (*GetPodcastEpisodeResponse, error)
+}
+
 // CreateChannelProvider provides the CreateChannel function.
 type CreateChannelProvider interface {
 	CreateChannel(CreatePodcastChannelRequest) (*CreatePodcastChannelResponse, error)
@@ -250,6 +267,7 @@ var (
 	getChannelsImpl       func(GetPodcastChannelsRequest) (*GetPodcastChannelsResponse, error)
 	getChannelImpl        func(GetPodcastChannelRequest) (*GetPodcastChannelResponse, error)
 	getNewestEpisodesImpl func(GetNewestEpisodesRequest) (*GetNewestEpisodesResponse, error)
+	getEpisodeImpl        func(GetPodcastEpisodeRequest) (*GetPodcastEpisodeResponse, error)
 	createChannelImpl     func(CreatePodcastChannelRequest) (*CreatePodcastChannelResponse, error)
 	refreshChannelsImpl   func(RefreshPodcastsRequest) (*RefreshPodcastsResponse, error)
 	downloadEpisodeImpl   func(DownloadPodcastEpisodeRequest) (*DownloadPodcastEpisodeResponse, error)
@@ -268,6 +286,9 @@ func Register(impl Podcast) {
 	}
 	if p, ok := impl.(GetNewestEpisodesProvider); ok {
 		getNewestEpisodesImpl = p.GetNewestEpisodes
+	}
+	if p, ok := impl.(GetEpisodeProvider); ok {
+		getEpisodeImpl = p.GetEpisode
 	}
 	if p, ok := impl.(CreateChannelProvider); ok {
 		createChannelImpl = p.CreateChannel
@@ -348,6 +369,29 @@ func _NdPodcastGetNewestEpisodes() int32 {
 		return -1
 	}
 	output, err := getNewestEpisodesImpl(input)
+	if err != nil {
+		pdk.SetError(err)
+		return -1
+	}
+	if err := pdk.OutputJSON(output); err != nil {
+		pdk.SetError(err)
+		return -1
+	}
+	return 0
+}
+
+//go:wasmexport nd_podcast_get_episode
+func _NdPodcastGetEpisode() int32 {
+	if getEpisodeImpl == nil {
+		// Return standard code - host will skip this plugin gracefully
+		return NotImplementedCode
+	}
+	var input GetPodcastEpisodeRequest
+	if err := pdk.InputJSON(&input); err != nil {
+		pdk.SetError(err)
+		return -1
+	}
+	output, err := getEpisodeImpl(input)
 	if err != nil {
 		pdk.SetError(err)
 		return -1

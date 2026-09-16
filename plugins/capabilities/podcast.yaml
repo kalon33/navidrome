@@ -26,6 +26,14 @@ exports:
         output:
             $ref: '#/components/schemas/GetNewestEpisodesResponse'
             contentType: application/json
+    nd_podcast_get_episode:
+        description: GetEpisode returns the metadata for a single podcast episode by ID.
+        input:
+            $ref: '#/components/schemas/GetPodcastEpisodeRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/GetPodcastEpisodeResponse'
+            contentType: application/json
     nd_podcast_create_channel:
         description: CreateChannel subscribes to a new podcast channel from the given feed
             URL.
@@ -130,6 +138,20 @@ components:
                         $ref: '#/components/schemas/PodcastEpisode'
             required:
                 - episodes
+        GetPodcastEpisodeRequest:
+            description: GetPodcastEpisodeRequest is the request for GetEpisode.
+            properties:
+                id:
+                    type: string
+                    description: ID is the podcast episode ID.
+            required:
+                - id
+        GetPodcastEpisodeResponse:
+            description: GetPodcastEpisodeResponse is the response for GetEpisode.
+            properties:
+                episode:
+                    $ref: '#/components/schemas/PodcastEpisode'
+                    description: Episode is the requested podcast episode.
         CreatePodcastChannelRequest:
             description: CreatePodcastChannelRequest is the request for CreateChannel.
             properties:
