@@ -21,6 +21,7 @@ import (
 	"github.com/navidrome/navidrome/consts"
 	"github.com/navidrome/navidrome/core/auth"
 	"github.com/navidrome/navidrome/core/metrics"
+	"github.com/navidrome/navidrome/core/podcast"
 	"github.com/navidrome/navidrome/log"
 	"github.com/navidrome/navidrome/model"
 	"github.com/navidrome/navidrome/server/events"
@@ -33,10 +34,11 @@ type Server struct {
 	appRoot  string
 	broker   events.Broker
 	insights metrics.Insights
+	podcast  podcast.Engine
 }
 
-func New(ds model.DataStore, broker events.Broker, insights metrics.Insights) *Server {
-	s := &Server{ds: ds, broker: broker, insights: insights}
+func New(ds model.DataStore, broker events.Broker, insights metrics.Insights, podcastEngine podcast.Engine) *Server {
+	s := &Server{ds: ds, broker: broker, insights: insights, podcast: podcastEngine}
 	initialSetup(ds)
 	auth.Init(s.ds)
 	s.initRoutes()
@@ -235,7 +237,7 @@ func (s *Server) mountRootRedirector() {
 func (s *Server) frontendAssetsHandler() http.Handler {
 	r := chi.NewRouter()
 
-	r.Handle("/", Index(s.ds, ui.BuildAssets()))
+	r.Handle("/", Index(s.ds, ui.BuildAssets(), s.podcast))
 	r.Handle("/*", http.StripPrefix(s.appRoot, http.FileServer(http.FS(ui.BuildAssets()))))
 	return r
 }

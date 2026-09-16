@@ -58,7 +58,10 @@ func CreateServer() *server.Server {
 	dataStore := persistence.New(sqlDB)
 	broker := events.GetBroker()
 	insights := metrics.GetInstance(dataStore)
-	serverServer := server.New(dataStore, broker, insights)
+	metricsMetrics := metrics.GetPrometheusInstance(dataStore)
+	manager := plugins.GetManager(dataStore, broker, metricsMetrics)
+	podcastPodcast := podcast.New(manager)
+	serverServer := server.New(dataStore, broker, insights, podcastPodcast)
 	return serverServer
 }
 

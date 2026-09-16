@@ -95,7 +95,7 @@ var _ = Describe("Auth", func() {
 
 			It("sets auth data if IPv4 matches whitelist", func() {
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), trustedIpv4))
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				parsed := config["auth"].(map[string]any)
@@ -105,7 +105,7 @@ var _ = Describe("Auth", func() {
 
 			It("sets no auth data if IPv4 does not match whitelist", func() {
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), untrustedIpv4))
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				Expect(config["auth"]).To(BeNil())
@@ -113,7 +113,7 @@ var _ = Describe("Auth", func() {
 
 			It("sets auth data if IPv6 matches whitelist", func() {
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), trustedIpv6))
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				parsed := config["auth"].(map[string]any)
@@ -123,7 +123,7 @@ var _ = Describe("Auth", func() {
 
 			It("sets no auth data if IPv6 does not match whitelist", func() {
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), untrustedIpv6))
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				Expect(config["auth"]).To(BeNil())
@@ -134,7 +134,7 @@ var _ = Describe("Auth", func() {
 
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), trustedIpv4))
 				req.Header.Set("Remote-User", newUser)
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				parsed := config["auth"].(map[string]any)
@@ -144,7 +144,7 @@ var _ = Describe("Auth", func() {
 
 			It("sets auth data if user exists", func() {
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), trustedIpv4))
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				parsed := config["auth"].(map[string]any)
@@ -168,7 +168,7 @@ var _ = Describe("Auth", func() {
 				conf.Server.ExtAuth.TrustedSources = ""
 
 				// No ReverseProxyIp in request context
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				Expect(config["auth"]).To(BeNil())
@@ -178,7 +178,7 @@ var _ = Describe("Auth", func() {
 				conf.Server.Address = "unix:/tmp/navidrome-test"
 
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), "@"))
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				Expect(config["auth"]).To(BeNil())
@@ -189,7 +189,7 @@ var _ = Describe("Auth", func() {
 				conf.Server.ExtAuth.TrustedSources = conf.Server.ExtAuth.TrustedSources + ",@"
 
 				req = req.WithContext(request.WithReverseProxyIp(req.Context(), "@"))
-				serveIndex(ds, fs, nil)(resp, req)
+				serveIndex(ds, fs, nil, nil)(resp, req)
 
 				config := extractAppConfig(resp.Body.String())
 				parsed := config["auth"].(map[string]any)
