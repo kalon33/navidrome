@@ -15,6 +15,7 @@ import (
 	"github.com/navidrome/navidrome/core/metrics"
 	"github.com/navidrome/navidrome/core/playback"
 	"github.com/navidrome/navidrome/core/playlists"
+	"github.com/navidrome/navidrome/core/podcast"
 	"github.com/navidrome/navidrome/core/scrobbler"
 	"github.com/navidrome/navidrome/core/sonic"
 	"github.com/navidrome/navidrome/db"
@@ -48,11 +49,14 @@ var allProviders = wire.NewSet(
 	db.Db,
 	plugins.GetManager,
 	sonic.New,
+	podcast.New,
 	wire.Bind(new(agents.PluginLoader), new(*plugins.Manager)),
 	wire.Bind(new(scrobbler.PluginLoader), new(*plugins.Manager)),
 	wire.Bind(new(lyrics.PluginLoader), new(*plugins.Manager)),
 	wire.Bind(new(sonic.PluginLoader), new(*plugins.Manager)),
 	wire.Bind(new(sonic.Engine), new(*sonic.Sonic)),
+	wire.Bind(new(podcast.Engine), new(*podcast.Podcast)),
+	wire.Bind(new(podcast.PluginLoader), new(*plugins.Manager)),
 	wire.Bind(new(nativeapi.PluginManager), new(*plugins.Manager)),
 	wire.Bind(new(core.PluginUnloader), new(*plugins.Manager)),
 	wire.Bind(new(plugins.PluginMetricsRecorder), new(metrics.Metrics)),

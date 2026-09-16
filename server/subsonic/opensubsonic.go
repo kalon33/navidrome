@@ -22,6 +22,11 @@ func (api *Router) GetOpenSubsonicExtensions(_ *http.Request) (*responses.Subson
 			Name: "sonicSimilarity", Versions: []int32{1},
 		})
 	}
+	if api.podcast != nil && api.podcast.HasProvider() {
+		extensions = append(extensions, responses.OpenSubsonicExtension{
+			Name: "getPodcastEpisode", Versions: []int32{1},
+		})
+	}
 	response.OpenSubsonicExtensions = &extensions
 	return response, nil
 }

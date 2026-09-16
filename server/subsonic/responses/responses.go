@@ -53,6 +53,9 @@ type Subsonic struct {
 	Lyrics     *Lyrics     `xml:"lyrics,omitempty"                                        json:"lyrics,omitempty"`
 
 	InternetRadioStations *InternetRadioStations `xml:"internetRadioStations,omitempty"   json:"internetRadioStations,omitempty"`
+	Podcasts              *Podcasts              `xml:"podcasts,omitempty"                        json:"podcasts,omitempty"`
+	NewestPodcasts        *NewestPodcasts        `xml:"newestPodcasts,omitempty"                  json:"newestPodcasts,omitempty"`
+	PodcastEpisode        *PodcastEpisode        `xml:"podcastEpisode,omitempty"                  json:"podcastEpisode,omitempty"`
 
 	JukeboxStatus   *JukeboxStatus   `xml:"jukeboxStatus,omitempty"                       json:"jukeboxStatus,omitempty"`
 	JukeboxPlaylist *JukeboxPlaylist `xml:"jukeboxPlaylist,omitempty"                     json:"jukeboxPlaylist,omitempty"`
@@ -530,6 +533,39 @@ type Radio struct {
 
 type OpenSubsonicRadio struct {
 	CoverArt string `xml:"coverArt,attr,omitempty"  json:"coverArt"`
+}
+
+type Podcasts struct {
+	Channels []PodcastChannel `xml:"channel"               json:"channel,omitempty"`
+}
+
+type NewestPodcasts struct {
+	Episodes []PodcastEpisode `xml:"episode"               json:"episode,omitempty"`
+}
+
+// PodcastChannel represents a podcast channel (RSS feed subscription).
+type PodcastChannel struct {
+	Id               string           `xml:"id,attr"                    json:"id"`
+	Url              string           `xml:"url,attr"                    json:"url"`
+	Title            string           `xml:"title,attr,omitempty"        json:"title,omitempty"`
+	Description      string           `xml:"description,attr,omitempty"  json:"description,omitempty"`
+	CoverArt         string           `xml:"coverArt,attr,omitempty"     json:"coverArt,omitempty"`
+	OriginalImageUrl string           `xml:"originalImageUrl,attr,omitempty" json:"originalImageUrl,omitempty"`
+	Status           string           `xml:"status,attr"                json:"status"`
+	ErrorMessage     string           `xml:"errorMessage,attr,omitempty" json:"errorMessage,omitempty"`
+	Episode          []PodcastEpisode `xml:"episode"                      json:"episode,omitempty"`
+}
+
+// PodcastEpisode extends Child with podcast-specific fields. It embeds Child so
+// that the common media fields are serialized, and adds the podcast extension
+// fields (streamId, channelId, description, status, publishDate).
+type PodcastEpisode struct {
+	Child
+	StreamId    string `xml:"streamId,attr,omitempty"    json:"streamId,omitempty"`
+	ChannelId   string `xml:"channelId,attr"             json:"channelId"`
+	Description string `xml:"description,attr,omitempty" json:"description,omitempty"`
+	Status      string `xml:"status,attr"                json:"status"`
+	PublishDate string `xml:"publishDate,attr,omitempty" json:"publishDate,omitempty"`
 }
 
 type JukeboxStatus struct {
