@@ -27,8 +27,8 @@ func init() {
 
 var (
 	_ podcast.GetChannelsProvider       = (*demoPlugin)(nil)
-	_ podcast.GetChannelProvider         = (*demoPlugin)(nil)
-	_ podcast.GetNewestEpisodesProvider  = (*demoPlugin)(nil)
+	_ podcast.GetChannelProvider        = (*demoPlugin)(nil)
+	_ podcast.GetNewestEpisodesProvider = (*demoPlugin)(nil)
 	_ podcast.GetEpisodeProvider        = (*demoPlugin)(nil)
 	_ podcast.CreateChannelProvider     = (*demoPlugin)(nil)
 	_ podcast.RefreshChannelsProvider   = (*demoPlugin)(nil)
@@ -51,19 +51,19 @@ func sampleChannel() podcast.PodcastChannel {
 				ID:          "demo-episode-1",
 				StreamID:    "demo-episode-1",
 				ChannelID:   "demo-channel-1",
-				Title:        "Welcome to the Demo Podcast",
-				Description:  "The first episode of the Navidrome demo podcast.",
-				PublishDate:  "2024-01-01T00:00:00Z",
-				Status:       podcast.PodcastStatusCompleted,
-				StreamURL:    "https://example.com/podcast/episode-1.mp3",
-				CoverArt:     "pod-demo-channel-1",
-				Year:         2024,
-				Genre:        "Podcast",
-				Duration:     600,
-				BitRate:      128,
-				Size:         9600000,
-				ContentType:  "audio/mpeg",
-				Suffix:       "mp3",
+				Title:       "Welcome to the Demo Podcast",
+				Description: "The first episode of the Navidrome demo podcast.",
+				PublishDate: "2024-01-01T00:00:00Z",
+				Status:      podcast.PodcastStatusCompleted,
+				StreamURL:   "https://example.com/podcast/episode-1.mp3",
+				CoverArt:    "pod-demo-channel-1",
+				Year:        2024,
+				Genre:       "Podcast",
+				Duration:    600,
+				BitRate:     128,
+				Size:        9600000,
+				ContentType: "audio/mpeg",
+				Suffix:      "mp3",
 			},
 		},
 	}

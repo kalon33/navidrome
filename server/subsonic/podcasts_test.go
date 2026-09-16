@@ -15,18 +15,18 @@ import (
 // fakePodcastEngine is a test double for podcastsvc.Engine that returns canned
 // data and records the calls it receives.
 type fakePodcastEngine struct {
-	hasProvider        bool
-	channels           []capabilities.PodcastChannel
-	channel            *capabilities.PodcastChannel
-	newestEpisodes     []capabilities.PodcastEpisode
-	episode            *capabilities.PodcastEpisode
-	createErr          error
-	createdChannel     *capabilities.PodcastChannel
-	refreshedIDs       []string
-	downloadedEpisode  *capabilities.PodcastEpisode
-	deleteErr          error
-	lastChannelID      string
-	lastEpisodeID      string
+	hasProvider       bool
+	channels          []capabilities.PodcastChannel
+	channel           *capabilities.PodcastChannel
+	newestEpisodes    []capabilities.PodcastEpisode
+	episode           *capabilities.PodcastEpisode
+	createErr         error
+	createdChannel    *capabilities.PodcastChannel
+	refreshedIDs      []string
+	downloadedEpisode *capabilities.PodcastEpisode
+	deleteErr         error
+	lastChannelID     string
+	lastEpisodeID     string
 }
 
 func (f *fakePodcastEngine) HasProvider() bool { return f.hasProvider }

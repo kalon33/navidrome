@@ -53,9 +53,9 @@ type Subsonic struct {
 	Lyrics     *Lyrics     `xml:"lyrics,omitempty"                                        json:"lyrics,omitempty"`
 
 	InternetRadioStations *InternetRadioStations `xml:"internetRadioStations,omitempty"   json:"internetRadioStations,omitempty"`
-	Podcasts               *Podcasts               `xml:"podcasts,omitempty"                        json:"podcasts,omitempty"`
-	NewestPodcasts        *NewestPodcasts         `xml:"newestPodcasts,omitempty"                  json:"newestPodcasts,omitempty"`
-	PodcastEpisode        *PodcastEpisode         `xml:"podcastEpisode,omitempty"                  json:"podcastEpisode,omitempty"`
+	Podcasts              *Podcasts              `xml:"podcasts,omitempty"                        json:"podcasts,omitempty"`
+	NewestPodcasts        *NewestPodcasts        `xml:"newestPodcasts,omitempty"                  json:"newestPodcasts,omitempty"`
+	PodcastEpisode        *PodcastEpisode        `xml:"podcastEpisode,omitempty"                  json:"podcastEpisode,omitempty"`
 
 	JukeboxStatus   *JukeboxStatus   `xml:"jukeboxStatus,omitempty"                       json:"jukeboxStatus,omitempty"`
 	JukeboxPlaylist *JukeboxPlaylist `xml:"jukeboxPlaylist,omitempty"                     json:"jukeboxPlaylist,omitempty"`

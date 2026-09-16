@@ -62,7 +62,7 @@ type Podcast interface {
 type PodcastStatus string
 
 const (
-	PodcastStatusNew        PodcastStatus = "new"
+	PodcastStatusNew         PodcastStatus = "new"
 	PodcastStatusDownloading PodcastStatus = "downloading"
 	PodcastStatusCompleted   PodcastStatus = "completed"
 	PodcastStatusError       PodcastStatus = "error"

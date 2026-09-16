@@ -13,7 +13,7 @@ package podcast
 type PodcastStatus string
 
 const (
-	PodcastStatusNew        PodcastStatus = "new"
+	PodcastStatusNew         PodcastStatus = "new"
 	PodcastStatusDownloading PodcastStatus = "downloading"
 	PodcastStatusCompleted   PodcastStatus = "completed"
 	PodcastStatusError       PodcastStatus = "error"
@@ -258,7 +258,6 @@ type DeleteChannelProvider interface {
 type DeleteEpisodeProvider interface {
 	DeleteEpisode(DeletePodcastEpisodeRequest) (*DeletePodcastEpisodeResponse, error)
 }
-
 
 // NotImplementedCode is the standard return code for unimplemented functions.
 const NotImplementedCode int32 = -2

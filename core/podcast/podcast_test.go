@@ -75,10 +75,10 @@ func (m *mockProvider) DeleteEpisode(_ context.Context, id string) error {
 
 var _ = Describe("Podcast", func() {
 	var (
-		ctx     context.Context
-		loader  *mockPluginLoader
+		ctx      context.Context
+		loader   *mockPluginLoader
 		provider *mockProvider
-		service *podcast.Podcast
+		service  *podcast.Podcast
 	)
 
 	BeforeEach(func() {
