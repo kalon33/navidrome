@@ -150,12 +150,34 @@ var _ = Describe("Podcasts", func() {
 			Expect(ch.Id).To(Equal("ch-1"))
 			Expect(ch.Title).To(Equal("Test Channel"))
 			Expect(ch.Status).To(Equal("completed"))
+			Expect(ch.CoverArt).To(Equal("pc-ch-1"))
 			Expect(ch.Episode).To(HaveLen(1))
 			Expect(ch.Episode[0].Id).To(Equal("ep-1"))
 			Expect(ch.Episode[0].ChannelId).To(Equal("ch-1"))
+			Expect(ch.Episode[0].CoverArt).To(Equal("pc-ch-1"))
 			Expect(ch.Episode[0].StreamId).To(Equal("ep-1"))
 			Expect(ch.Episode[0].StreamUrl).To(Equal("https://example.com/episode1.mp3"))
 			Expect(ch.Episode[0].Status).To(Equal("completed"))
+		})
+
+		It("emits a pc- coverArt for channels and episodes regardless of plugin coverArt id", func() {
+			engine.channels = []capabilities.PodcastChannel{
+				{
+					ID:       "ch-2",
+					URL:      "https://example.com/feed.xml",
+					Title:    "Cover Test",
+					CoverArt: "ch-2",
+					Status:   capabilities.PodcastStatusCompleted,
+					Episodes: []capabilities.PodcastEpisode{
+						{ID: "ep-2", ChannelID: "ch-2", Title: "Ep", CoverArt: "ch-2"},
+					},
+				},
+			}
+			resp, err := api.GetPodcasts(newPodcastRequest("getPodcasts", "includeEpisodes", "true"))
+			Expect(err).ToNot(HaveOccurred())
+			ch := resp.Podcasts.Channels[0]
+			Expect(ch.CoverArt).To(Equal("pc-ch-2"))
+			Expect(ch.Episode[0].CoverArt).To(Equal("pc-ch-2"))
 		})
 
 		It("getPodcasts with id returns a single channel", func() {

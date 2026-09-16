@@ -1,3 +1,4 @@
+import subsonic from '../subsonic'
 import { PODCAST_PLACEHOLDER_IMAGE } from '../consts'
 
 export const episodeStatus = (ep) => ep?.status || 'skipped'
@@ -11,13 +12,15 @@ export const formatEpisodeDate = (iso) => {
   return d.toLocaleDateString()
 }
 
-export const podcastCoverUrl = (record) => {
+export const podcastCoverUrl = (record, size) => {
   if (!record) return PODCAST_PLACEHOLDER_IMAGE
-  // coverArt is an opaque plugin id (e.g. "ch-..."), not a resolvable URL:
-  // only a real remote image URL is usable directly by the UI; otherwise
-  // fall back to the placeholder so the browser never treats the id as a
-  // relative path (which produces 404s like /app/ch-...).
-  if (record.originalImageUrl) return record.originalImageUrl
+  // Prefer the server-resolved cover (pc-<id> via getCoverArt) so the image is
+  // fetched/proxied through the artwork service and resized server-side. The
+  // channel id (or the record id for a channel) is the artwork id's ID part.
+  const id = record.channelId || record.id
+  if (id && /^ch-/.test(String(id))) {
+    return subsonic.getCoverArtUrl({ isPodcast: true, id }, size)
+  }
   if (record.coverArt && /^https?:\/\//.test(record.coverArt)) {
     return record.coverArt
   }
@@ -37,7 +40,7 @@ export const songFromPodcastEpisode = (ep) => {
     artist: ep.channelTitle || 'Podcast',
     cover,
     streamUrl: ep.streamUrl,
-    isRadio: true,
+    duration: ep.duration,
     isPodcast: true,
   }
 }
