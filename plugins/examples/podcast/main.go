@@ -422,17 +422,21 @@ func defaultEpisodeStatus(enclosureURL string) podcast.PodcastStatus {
 // preservedStatus keeps a previously recorded user/system status across feed
 // refreshes for states that should not be reset to the default. "completed" is
 // also preserved so that an episode verified reachable stays available even if
-// the enclosure URL temporarily changes. "new" is not preserved: a refreshed
-// episode is re-evaluated against its enclosure.
-func preservedStatus(prev podcast.PodcastStatus) podcast.PodcastStatus {
+// the enclosure URL temporarily changes. "new" and "skipped" are NOT preserved:
+// a refreshed episode is re-evaluated against its enclosure. Not preserving
+// "skipped" is important because it was the legacy default status for
+// non-downloaded episodes, so existing data must migrate to the new
+// enclosure-based default (typically "completed") rather than stay stuck on
+// "skipped", which would hide episodes from Subsonic clients that only surface
+// "completed" episodes (e.g. Tempus).
+func preservedStatus(prev podcast.PodcastStatus) (podcast.PodcastStatus, bool) {
 	switch prev {
 	case podcast.PodcastStatusCompleted,
 		podcast.PodcastStatusError,
-		podcast.PodcastStatusSkipped,
 		podcast.PodcastStatusDeleted:
-		return prev
+		return prev, true
 	}
-	return podcast.PodcastStatusNew
+	return "", false
 }
 
 // feedToChannel builds a PodcastChannel from a parsed RSS feed, preserving any
@@ -473,7 +477,9 @@ func feedToChannel(feedURL string, feed *rssFeed, existing map[string]podcast.Po
 			Suffix:      enclosureSuffix(it.Enclosure.Type, it.Enclosure.URL),
 		}
 		if prev, ok := existing[epID]; ok {
-			ep.Status = preservedStatus(prev.Status)
+			if status, keep := preservedStatus(prev.Status); keep {
+				ep.Status = status
+			}
 			ep.ErrorMessage = prev.ErrorMessage
 		}
 		episodes = append(episodes, ep)

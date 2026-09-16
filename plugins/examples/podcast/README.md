@@ -34,6 +34,14 @@ feed refreshes via the Scheduler host service.
   without a usable enclosure are `new`. The full OpenSubsonic PodcastStatus
   surface is supported: `new`, `downloading`, `completed`, `error`, `deleted`,
   `skipped`.
+- **Status preservation on refresh**: only `completed`, `error`, and `deleted`
+  are preserved across feed refreshes. `new` and `skipped` are re-evaluated
+  against the enclosure URL so episodes pick up the correct default. This
+  also migrates legacy data: older versions defaulted non-downloaded episodes
+  to `skipped`, which would otherwise stay stuck on `skipped` and never become
+  visible to clients filtering on `completed` (e.g. Tempus). After rebuilding and
+  reinstalling this plugin, a `refreshPodcasts` call re-evaluates all episodes
+  and marks streamable ones `completed`.
 - **Download** (`downloadPodcastEpisode`): transitions the episode to
   `downloading`, verifies the enclosure is reachable (HEAD request), then sets
   `completed`/`error` accordingly. Episodes are not written to disk: their
