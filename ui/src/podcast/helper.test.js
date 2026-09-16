@@ -51,8 +51,17 @@ describe('podcast helper', () => {
         }),
       ).toBe('https://a/img.jpg')
     })
-    it('falls back to coverArt', () => {
-      expect(podcastCoverUrl({ coverArt: 'c' })).toBe('c')
+    it('falls back to placeholder for a non-URL coverArt id', () => {
+      // coverArt is an opaque plugin id (e.g. "ch-..."), not a usable image
+      // URL, so it must not be returned as-is (the browser would treat it as
+      // a relative path and 404).
+      expect(podcastCoverUrl({ coverArt: 'ch-abc' })).toBe('podcast-icon.svg')
+      expect(podcastCoverUrl({ coverArt: 'c' })).toBe('podcast-icon.svg')
+    })
+    it('uses an absolute http coverArt URL when present', () => {
+      expect(
+        podcastCoverUrl({ coverArt: 'https://covers.example/x.jpg' }),
+      ).toBe('https://covers.example/x.jpg')
     })
     it('falls back to placeholder when nothing available', () => {
       expect(podcastCoverUrl({})).toBe('podcast-icon.svg')
@@ -78,6 +87,7 @@ describe('podcast helper', () => {
       expect(song.id).toBe('ep-1')
       expect(song.trackId).toBe('ep-1')
       expect(song.title).toBe('Episode 1')
+      expect(song.name).toBe('Episode 1')
       expect(song.album).toBe('Show')
       expect(song.artist).toBe('Show')
       expect(song.streamUrl).toBe('https://enclosure/audio.mp3')
@@ -88,6 +98,16 @@ describe('podcast helper', () => {
     it('uses streamId when different from id', () => {
       const song = songFromPodcastEpisode({ id: 'ep-1', streamId: 'mf-9' })
       expect(song.trackId).toBe('mf-9')
+    })
+    it('uses placeholder cover when only an opaque coverArt id is present', () => {
+      const song = songFromPodcastEpisode({
+        id: 'ep-1',
+        streamId: 'ep-1',
+        title: 'Episode 1',
+        coverArt: 'ch-abc',
+        streamUrl: 'https://enclosure/audio.mp3',
+      })
+      expect(song.cover).toBe('podcast-icon.svg')
     })
   })
 })
