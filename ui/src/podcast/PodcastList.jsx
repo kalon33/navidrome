@@ -22,6 +22,7 @@ import RefreshIcon from '@material-ui/icons/Refresh'
 import DeleteIcon from '@material-ui/icons/Delete'
 import subsonic from '../subsonic'
 import { podcastCoverUrl } from './helper'
+import { SafeHTML } from '../common/SafeHTML'
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -186,8 +187,9 @@ const PodcastList = () => {
                     variant="body2"
                     className={classes.channelDesc}
                     title={ch.description}
+                    component="div"
                   >
-                    {ch.description}
+                    <SafeHTML>{ch.description}</SafeHTML>
                   </Typography>
                 </CardContent>
               </CardActionArea>

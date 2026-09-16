@@ -77,6 +77,27 @@ describe('<PodcastList />', () => {
     expect(pushMock).toHaveBeenCalledWith('/podcast/ch-1')
   })
 
+  it('renders HTML descriptions as sanitized links instead of raw markup', async () => {
+    getPodcastsMock.mockResolvedValue([
+      {
+        id: 'ch-2',
+        title: 'HTML Show',
+        description:
+          'Listen on <a href="https://example.com/rf">Radio France</a>',
+        originalImageUrl: 'https://img/cover.jpg',
+      },
+    ])
+    renderList()
+    await waitFor(() =>
+      expect(screen.getByText('HTML Show')).toBeInTheDocument(),
+    )
+    const link = await screen.findByRole('link', { name: 'Radio France' })
+    expect(link).toHaveAttribute('href', 'https://example.com/rf')
+    expect(
+      screen.queryByText((content) => content.includes('<a href=')),
+    ).not.toBeInTheDocument()
+  })
+
   it('refreshes podcasts when the refresh button is clicked', async () => {
     getPodcastsMock.mockResolvedValue([])
     refreshPodcastsMock.mockResolvedValue({})
