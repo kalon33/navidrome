@@ -114,6 +114,32 @@ describe('<PodcastShow />', () => {
     expect(screen.getByText(date)).toBeInTheDocument()
   })
 
+  it('renders the episode title exactly once (no duplicated/stuck title)', async () => {
+    const longTitle = 'Marine Le Pen a nouveau les pieds dans le voile'
+    getPodcastsMock.mockResolvedValue([
+      {
+        id: 'ch-1',
+        title: 'Edito politique',
+        description: 'desc',
+        originalImageUrl: 'https://img/cover.jpg',
+        episode: [
+          {
+            id: 'ep-1',
+            streamId: 'ep-1',
+            title: longTitle,
+            publishDate: '2024-09-02T00:00:00Z',
+            duration: 181,
+            status: 'skipped',
+            streamUrl: 'https://enclosure/a.mp3',
+          },
+        ],
+      },
+    ])
+    renderShow()
+    await waitFor(() => expect(screen.getByText(longTitle)).toBeInTheDocument())
+    expect(screen.getAllByText(longTitle)).toHaveLength(1)
+  })
+
   it('shows the not found state when no channel is returned', async () => {
     getPodcastsMock.mockResolvedValue([])
     renderShow()
