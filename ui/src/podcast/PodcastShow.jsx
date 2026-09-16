@@ -111,6 +111,11 @@ const useStyles = makeStyles((theme) => ({
     fontSize: '0.7rem',
     flexShrink: 0,
   },
+  episodeActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+  },
   episodeMeta: {
     display: 'flex',
     alignItems: 'center',
@@ -397,58 +402,55 @@ const PodcastShow = () => {
                 }
               />
               <ListItemSecondaryAction>
-                <Tooltip title={translate('resources.podcast.actions.play')}>
-                  <div>
-                    <IconButton
-                      edge="end"
-                      onClick={() => playEpisode(ep)}
-                      disabled={isError(ep)}
-                    >
-                      <PlayArrowIcon />
-                    </IconButton>
-                  </div>
-                </Tooltip>
-                <Tooltip
-                  title={translate('resources.podcast.actions.addToQueue')}
-                >
-                  <div>
-                    <IconButton
-                      edge="end"
-                      onClick={() => addToQueue(ep)}
-                      disabled={isError(ep)}
-                    >
-                      <PlaylistAddIcon />
-                    </IconButton>
-                  </div>
-                </Tooltip>
-                {episodeStatus(ep) === 'downloading' ? (
-                  <Tooltip
-                    title={translate('resources.podcast.status.downloading')}
-                  >
-                    <IconButton edge="end" disabled>
-                      <CircularProgress size={20} />
-                    </IconButton>
+                <div className={classes.episodeActions}>
+                  <Tooltip title={translate('resources.podcast.actions.play')}>
+                    <div>
+                      <IconButton
+                        onClick={() => playEpisode(ep)}
+                        disabled={isError(ep)}
+                      >
+                        <PlayArrowIcon />
+                      </IconButton>
+                    </div>
                   </Tooltip>
-                ) : (
-                  !isDownloaded(ep) &&
-                  !isError(ep) && (
+                  <Tooltip
+                    title={translate('resources.podcast.actions.addToQueue')}
+                  >
+                    <div>
+                      <IconButton
+                        onClick={() => addToQueue(ep)}
+                        disabled={isError(ep)}
+                      >
+                        <PlaylistAddIcon />
+                      </IconButton>
+                    </div>
+                  </Tooltip>
+                  {episodeStatus(ep) === 'downloading' ? (
                     <Tooltip
-                      title={translate('resources.podcast.actions.download')}
+                      title={translate('resources.podcast.status.downloading')}
                     >
-                      <IconButton edge="end" onClick={() => handleDownload(ep)}>
-                        <CloudDownloadIcon />
+                      <IconButton disabled>
+                        <CircularProgress size={20} />
                       </IconButton>
                     </Tooltip>
-                  )
-                )}
-                <Tooltip title={translate('ra.action.delete')}>
-                  <IconButton
-                    edge="end"
-                    onClick={() => handleDeleteEpisode(ep)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
+                  ) : (
+                    !isDownloaded(ep) &&
+                    !isError(ep) && (
+                      <Tooltip
+                        title={translate('resources.podcast.actions.download')}
+                      >
+                        <IconButton onClick={() => handleDownload(ep)}>
+                          <CloudDownloadIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )
+                  )}
+                  <Tooltip title={translate('ra.action.delete')}>
+                    <IconButton onClick={() => handleDeleteEpisode(ep)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </div>
               </ListItemSecondaryAction>
             </ListItem>
           ))}
