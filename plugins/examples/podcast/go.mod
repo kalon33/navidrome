@@ -1,4 +1,4 @@
-module podcast-demo
+module podcast
 
 go 1.25
 

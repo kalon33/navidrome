@@ -22,8 +22,8 @@
 //
 // Build with:
 //
-//	tinygo build -o podcast-demo.wasm -target wasip1 -buildmode=c-shared .
-//	zip -j podcast-demo.ndp manifest.json podcast-demo.wasm
+//	tinygo build -o podcast.wasm -target wasip1 -buildmode=c-shared .
+//	zip -j podcast.ndp manifest.json podcast.wasm
 package main
 
 import (

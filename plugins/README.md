@@ -1308,7 +1308,7 @@ See [examples/](examples/) for complete working plugins:
 | [library-inspector-rs](examples/library-inspector-rs/)         | Rust           | Lifecycle     | Library, Scheduler                         | Periodic library stats logging |
 | [crypto-ticker](examples/crypto-ticker/)                       | Go             | Lifecycle     | WebSocket, Scheduler                       | Real-time crypto prices demo   |
 | [discord-rich-presence-rs](examples/discord-rich-presence-rs/) | Rust           | Scrobbler     | HTTP, WebSocket, Cache, Scheduler, Artwork | Discord integration            |
-| [podcast-demo](examples/podcast-demo/)                         | Go             | Podcast       | –                                          | In-memory podcast backend demo |
+| [podcast](examples/podcast/)                                   | Go             | Podcast       | HTTP, KVStore, Scheduler                   | RSS podcast backend            |
 
 ---
 

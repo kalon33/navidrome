@@ -64,22 +64,22 @@ loopback, and link-local addresses unless an explicit IP/CIDR is added.
 2. Build the plugin:
 
    ```bash
-   cd plugins/examples/podcast-demo
+   cd plugins/examples/podcast
    go mod tidy
    tinygo build -o plugin.wasm -target wasip1 -buildmode=c-shared .
-   zip -j podcast-demo.ndp manifest.json plugin.wasm
+   zip -j podcast.ndp manifest.json plugin.wasm
    ```
 
    Or using the examples Makefile:
 
    ```bash
    cd plugins/examples
-   make podcast-demo.ndp
+   make podcast.ndp
    ```
 
 ## Installing
 
-Copy `podcast-demo.ndp` to your Navidrome plugins folder (default:
+Copy `podcast.ndp` to your Navidrome plugins folder (default:
 `<data-folder>/plugins/`) and enable plugins in your `navidrome.toml`:
 
 ```toml
