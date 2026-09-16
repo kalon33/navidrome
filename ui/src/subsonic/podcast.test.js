@@ -129,4 +129,50 @@ describe('subsonic podcast client', () => {
     expect(calledUrl).toContain('deletePodcastEpisode')
     expect(calledUrl).toContain('id=ep-1')
   })
+
+  it('getPodcasts rejects on error status with server message', async () => {
+    httpClient.mockResolvedValue(
+      mockResp({
+        status: 'failed',
+        error: { code: 0, message: 'plugin not configured' },
+      }),
+    )
+    await expect(subsonic.getPodcasts()).rejects.toThrow(
+      'plugin not configured',
+    )
+  })
+
+  it('createPodcastChannel rejects on error status with server message', async () => {
+    httpClient.mockResolvedValue(
+      mockResp({
+        status: 'failed',
+        error: { code: 0, message: 'plugin not configured' },
+      }),
+    )
+    await expect(
+      subsonic.createPodcastChannel('https://feed.xml'),
+    ).rejects.toThrow('plugin not configured')
+  })
+
+  it('refreshPodcasts rejects on error status', async () => {
+    httpClient.mockResolvedValue(
+      mockResp({
+        status: 'failed',
+        error: { code: 0, message: 'no provider' },
+      }),
+    )
+    await expect(subsonic.refreshPodcasts()).rejects.toThrow('no provider')
+  })
+
+  it('deletePodcastChannel rejects on error status', async () => {
+    httpClient.mockResolvedValue(
+      mockResp({
+        status: 'failed',
+        error: { code: 0, message: 'no provider' },
+      }),
+    )
+    await expect(subsonic.deletePodcastChannel('ch-1')).rejects.toThrow(
+      'no provider',
+    )
+  })
 })

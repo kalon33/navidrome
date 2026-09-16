@@ -116,4 +116,27 @@ describe('<PodcastList />', () => {
       expect(deletePodcastChannelMock).toHaveBeenCalledWith('ch-1'),
     )
   })
+
+  it('shows the server error message when adding a channel fails', async () => {
+    getPodcastsMock.mockResolvedValue([])
+    createPodcastChannelMock.mockRejectedValue(
+      new Error('plugin not configured'),
+    )
+    renderList()
+    await waitFor(() => expect(getPodcastsMock).toHaveBeenCalled())
+    fireEvent.click(
+      screen.getByRole('button', { name: 'resources.podcast.actions.add' }),
+    )
+    const input = await screen.findByRole('textbox')
+    fireEvent.change(input, { target: { value: 'https://feed.xml' } })
+    fireEvent.click(screen.getByRole('button', { name: 'ra.action.save' }))
+    await waitFor(() =>
+      expect(createPodcastChannelMock).toHaveBeenCalledWith('https://feed.xml'),
+    )
+    await waitFor(() =>
+      expect(mockNotify).toHaveBeenCalledWith('plugin not configured', {
+        type: 'warning',
+      }),
+    )
+  })
 })

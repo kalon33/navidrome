@@ -140,41 +140,57 @@ const streamUrl = (id, options) => {
   )
 }
 
+const subsonicResponse = (resp) => resp.json['subsonic-response']
+
+const requireOk = (resp) => {
+  const data = subsonicResponse(resp)
+  if (!data || data.status !== 'ok') {
+    const message = data?.error?.message || data?.status || 'subsonic error'
+    throw new Error(message)
+  }
+  return data
+}
+
 const getPodcasts = (id) => {
   const options = { includeEpisodes: true }
   if (id) {
     options.id = id
   }
-  return httpClient(url('getPodcasts', null, options)).then(
-    (resp) => resp.json['subsonic-response'].podcasts?.channel || [],
-  )
+  return httpClient(url('getPodcasts', null, options)).then((resp) => {
+    const data = requireOk(resp)
+    return data.podcasts?.channel || []
+  })
 }
 
 const getNewestPodcasts = (count = 20) => {
-  return httpClient(url('getNewestPodcasts', null, { count })).then(
-    (resp) => resp.json['subsonic-response'].newestPodcasts?.episode || [],
-  )
+  return httpClient(url('getNewestPodcasts', null, { count })).then((resp) => {
+    const data = requireOk(resp)
+    return data.newestPodcasts?.episode || []
+  })
 }
 
 const getPodcastEpisode = (id) => {
-  return httpClient(url('getPodcastEpisode', null, { id })).then(
-    (resp) => resp.json['subsonic-response'].podcastEpisode,
-  )
+  return httpClient(url('getPodcastEpisode', null, { id })).then((resp) => {
+    const data = requireOk(resp)
+    return data.podcastEpisode
+  })
 }
 
 const createPodcastChannel = (feedUrl) =>
-  httpClient(url('createPodcastChannel', null, { url: feedUrl }))
+  httpClient(url('createPodcastChannel', null, { url: feedUrl })).then(
+    requireOk,
+  )
 
-const refreshPodcasts = () => httpClient(url('refreshPodcasts'))
+const refreshPodcasts = () => httpClient(url('refreshPodcasts')).then(requireOk)
 
 const downloadPodcastEpisode = (id) =>
-  httpClient(url('downloadPodcastEpisode', null, { id }))
+  httpClient(url('downloadPodcastEpisode', null, { id })).then(requireOk)
 
 const deletePodcastChannel = (id) =>
-  httpClient(url('deletePodcastChannel', null, { id }))
+  httpClient(url('deletePodcastChannel', null, { id })).then(requireOk)
 
 const deletePodcastEpisode = (id) =>
-  httpClient(url('deletePodcastEpisode', null, { id }))
+  httpClient(url('deletePodcastEpisode', null, { id })).then(requireOk)
 
 export default {
   url,
