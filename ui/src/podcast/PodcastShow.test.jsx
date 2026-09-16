@@ -28,6 +28,7 @@ vi.mock('../subsonic', () => ({
   default: {
     getPodcasts: (...a) => getPodcastsMock(...a),
     refreshPodcasts: (...a) => refreshPodcastsMock(...a),
+    getCoverArtUrl: () => '/rest/getCoverArt?id=pc-test',
   },
 }))
 vi.mock('../actions', () => ({
@@ -111,6 +112,32 @@ describe('<PodcastShow />', () => {
     ).toBeInTheDocument()
     const date = new Date('2024-01-15T00:00:00Z').toLocaleDateString()
     expect(screen.getByText(date)).toBeInTheDocument()
+  })
+
+  it('renders the episode title exactly once (no duplicated/stuck title)', async () => {
+    const longTitle = 'Marine Le Pen a nouveau les pieds dans le voile'
+    getPodcastsMock.mockResolvedValue([
+      {
+        id: 'ch-1',
+        title: 'Edito politique',
+        description: 'desc',
+        originalImageUrl: 'https://img/cover.jpg',
+        episode: [
+          {
+            id: 'ep-1',
+            streamId: 'ep-1',
+            title: longTitle,
+            publishDate: '2024-09-02T00:00:00Z',
+            duration: 181,
+            status: 'skipped',
+            streamUrl: 'https://enclosure/a.mp3',
+          },
+        ],
+      },
+    ])
+    renderShow()
+    await waitFor(() => expect(screen.getByText(longTitle)).toBeInTheDocument())
+    expect(screen.getAllByText(longTitle)).toHaveLength(1)
   })
 
   it('shows the not found state when no channel is returned', async () => {

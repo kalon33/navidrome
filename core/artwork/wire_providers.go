@@ -5,7 +5,7 @@ import (
 )
 
 var Set = wire.NewSet(
-	NewArtwork,
+	NewArtworkWithPodcastCover,
 	GetImageCache,
 	NewWorker,
 	GetImageStore,

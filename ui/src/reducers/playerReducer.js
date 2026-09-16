@@ -44,6 +44,22 @@ const mapToAudioLists = (item) => {
   // If item comes from a playlist, trackId is mediaFileId
   const trackId = item.mediaFileId || item.id
 
+  if (item.isPodcast) {
+    // Podcasts are streamed from their remote streamUrl (like a radio) but are
+    // seekable and reportable like songs. They are not MediaFiles, so they are
+    // neither transcoded nor scrobbled.
+    return {
+      trackId,
+      uuid: uuidv4(),
+      name: item.title,
+      song: item,
+      musicSrc: item.streamUrl,
+      cover: item.cover,
+      duration: item.duration,
+      isPodcast: true,
+    }
+  }
+
   if (item.isRadio) {
     return {
       trackId,
@@ -235,9 +251,10 @@ export const playerReducer = (previousState = initialState, payload) => {
         ...previousState,
         queue: previousState.queue.map((item) => ({
           ...item,
-          musicSrc: item.isRadio
-            ? item.musicSrc
-            : resolvedUrls[item.trackId] || subsonic.streamUrl(item.trackId),
+          musicSrc:
+            item.isRadio || item.isPodcast
+              ? item.musicSrc
+              : resolvedUrls[item.trackId] || subsonic.streamUrl(item.trackId),
         })),
         clear: true,
         autoPlay: false,

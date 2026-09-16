@@ -3,6 +3,7 @@ package subsonic
 import (
 	"net/http"
 
+	"github.com/navidrome/navidrome/model"
 	"github.com/navidrome/navidrome/plugins/capabilities"
 	"github.com/navidrome/navidrome/server/subsonic/responses"
 	"github.com/navidrome/navidrome/utils/req"
@@ -180,7 +181,7 @@ func toPodcastChannel(ch capabilities.PodcastChannel) responses.PodcastChannel {
 		Url:              ch.URL,
 		Title:            ch.Title,
 		Description:      ch.Description,
-		CoverArt:         ch.CoverArt,
+		CoverArt:         podcastCoverArt(ch.ID),
 		OriginalImageUrl: ch.OriginalImageUrl,
 		Status:           string(ch.Status),
 		ErrorMessage:     ch.ErrorMessage,
@@ -202,7 +203,7 @@ func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 			IsDir:       false,
 			Year:        ep.Year,
 			Genre:       ep.Genre,
-			CoverArt:    ep.CoverArt,
+			CoverArt:    episodeCoverArt(ep),
 			Size:        ep.Size,
 			ContentType: ep.ContentType,
 			Suffix:      ep.Suffix,
@@ -227,4 +228,24 @@ func toPodcastEpisodePointer(ep *capabilities.PodcastEpisode) *responses.Podcast
 	}
 	r := toPodcastEpisode(*ep)
 	return &r
+}
+
+// podcastCoverArt builds a resolvable artwork id for a podcast channel. Plugin coverArt
+// ids (e.g. "ch-...") are opaque to the artwork service, so they are remapped to the
+// podcast artwork kind (pc-), which resolves the channel's OriginalImageUrl remotely.
+func podcastCoverArt(channelID string) string {
+	if channelID == "" {
+		return ""
+	}
+	return model.NewArtworkID(model.KindPodcastArtwork, channelID, nil).String()
+}
+
+// episodeCoverArt picks a usable cover id for an episode. Episodes rarely carry their
+// own remote image, so they fall back to their channel's cover id (pc-<channelId>);
+// an absolute http(s) cover is kept verbatim.
+func episodeCoverArt(ep capabilities.PodcastEpisode) string {
+	if ep.CoverArt != "" && (len(ep.CoverArt) > 7 && (ep.CoverArt[:7] == "http://" || ep.CoverArt[:8] == "https://")) {
+		return ep.CoverArt
+	}
+	return podcastCoverArt(ep.ChannelID)
 }

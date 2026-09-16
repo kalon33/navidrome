@@ -1,4 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('../subsonic', () => ({
+  default: {
+    getCoverArtUrl: vi.fn((record) => `/rest/getCoverArt?id=pc-${record.id}`),
+  },
+}))
+
 import {
   episodeStatus,
   isDownloaded,
@@ -6,8 +13,15 @@ import {
   podcastCoverUrl,
   songFromPodcastEpisode,
 } from './helper'
+import subsonic from '../subsonic'
 
 describe('podcast helper', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    subsonic.getCoverArtUrl.mockImplementation(
+      (record) => `/rest/getCoverArt?id=pc-${record.id}`,
+    )
+  })
   describe('episodeStatus', () => {
     it('returns the episode status', () => {
       expect(episodeStatus({ status: 'completed' })).toBe('completed')
@@ -43,16 +57,24 @@ describe('podcast helper', () => {
   })
 
   describe('podcastCoverUrl', () => {
-    it('prefers originalImageUrl', () => {
-      expect(
-        podcastCoverUrl({
-          originalImageUrl: 'https://a/img.jpg',
-          coverArt: 'c',
-        }),
-      ).toBe('https://a/img.jpg')
+    it('uses the server-resolved cover for a channel id (ch-...)', () => {
+      expect(podcastCoverUrl({ id: 'ch-abc', coverArt: 'ch-abc' })).toBe(
+        '/rest/getCoverArt?id=pc-ch-abc',
+      )
+      expect(subsonic.getCoverArtUrl).toHaveBeenCalledWith(
+        { isPodcast: true, id: 'ch-abc' },
+        undefined,
+      )
     })
-    it('falls back to coverArt', () => {
-      expect(podcastCoverUrl({ coverArt: 'c' })).toBe('c')
+    it('prefers channelId for an episode', () => {
+      expect(podcastCoverUrl({ channelId: 'ch-xyz', id: 'ep-1' })).toBe(
+        '/rest/getCoverArt?id=pc-ch-xyz',
+      )
+    })
+    it('uses an absolute http coverArt URL when no channel id is present', () => {
+      expect(
+        podcastCoverUrl({ coverArt: 'https://covers.example/x.jpg' }),
+      ).toBe('https://covers.example/x.jpg')
     })
     it('falls back to placeholder when nothing available', () => {
       expect(podcastCoverUrl({})).toBe('podcast-icon.svg')
@@ -78,16 +100,27 @@ describe('podcast helper', () => {
       expect(song.id).toBe('ep-1')
       expect(song.trackId).toBe('ep-1')
       expect(song.title).toBe('Episode 1')
+      expect(song.name).toBe('Episode 1')
       expect(song.album).toBe('Show')
       expect(song.artist).toBe('Show')
       expect(song.streamUrl).toBe('https://enclosure/audio.mp3')
-      expect(song.cover).toBe('https://img/cover.jpg')
-      expect(song.isRadio).toBe(true)
       expect(song.isPodcast).toBe(true)
+      expect(song.isRadio).toBeUndefined()
     })
     it('uses streamId when different from id', () => {
       const song = songFromPodcastEpisode({ id: 'ep-1', streamId: 'mf-9' })
       expect(song.trackId).toBe('mf-9')
+    })
+    it('uses server-resolved cover when a channel id (ch-...) is present', () => {
+      const song = songFromPodcastEpisode({
+        id: 'ep-1',
+        streamId: 'ep-1',
+        channelId: 'ch-abc',
+        title: 'Episode 1',
+        coverArt: 'ch-abc',
+        streamUrl: 'https://enclosure/audio.mp3',
+      })
+      expect(song.cover).toBe('/rest/getCoverArt?id=pc-ch-abc')
     })
   })
 })

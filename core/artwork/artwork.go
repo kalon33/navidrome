@@ -49,7 +49,13 @@ type Artwork interface {
 }
 
 func NewArtwork(ds model.DataStore, cache cache.FileCache, store *ImageStore, ffm ffmpeg.FFmpeg) Artwork {
-	return &service{ds: ds, cache: cache, store: store, ffmpeg: ffm}
+	return &service{ds: ds, cache: cache, store: store, ffmpeg: ffm, podcastCover: noPodcastCover{}}
+}
+
+// NewArtworkWithPodcastCover is like NewArtwork but additionally resolves podcast
+// channel artwork (KindPodcastArtwork) by fetching the channel's remote cover URL.
+func NewArtworkWithPodcastCover(ds model.DataStore, cache cache.FileCache, store *ImageStore, ffm ffmpeg.FFmpeg, cover PodcastCoverResolver) Artwork {
+	return &service{ds: ds, cache: cache, store: store, ffmpeg: ffm, podcastCover: cover}
 }
 
 // entityExists reports whether the entity an artwork id points at is still there: state rows
@@ -68,6 +74,10 @@ func entityExists(ctx context.Context, ds model.DataStore, artID model.ArtworkID
 		found, err = ds.Playlist(ctx).Exists(artID.ID)
 	case model.KindRadioArtwork:
 		found, err = ds.Radio(ctx).Exists(artID.ID)
+	case model.KindPodcastArtwork:
+		// Podcast channels live in the plugin, not the database; existence is checked at
+		// serve time by the resolver, so treat the entity as present here.
+		return true
 	case model.KindDiscArtwork:
 		albumID, _, perr := model.ParseDiscArtworkID(artID.ID)
 		if perr != nil {
@@ -81,10 +91,11 @@ func entityExists(ctx context.Context, ds model.DataStore, artID model.ArtworkID
 }
 
 type service struct {
-	ds     model.DataStore
-	cache  cache.FileCache
-	store  *ImageStore
-	ffmpeg ffmpeg.FFmpeg
+	ds           model.DataStore
+	cache        cache.FileCache
+	store        *ImageStore
+	ffmpeg       ffmpeg.FFmpeg
+	podcastCover PodcastCoverResolver
 }
 
 func (s *service) GetOrPlaceholder(ctx context.Context, id string, size int, square bool) (*Image, error) {
@@ -113,6 +124,8 @@ func (s *service) Get(ctx context.Context, artID model.ArtworkID, size int, squa
 		return s.serveDisc(ctx, artID, size, square)
 	case model.KindMediaFileArtwork:
 		return s.serveMediaFile(ctx, artID, size, square)
+	case model.KindPodcastArtwork:
+		return s.servePodcast(ctx, artID, size, square)
 	default:
 		return s.serveEntity(ctx, artID, size, square)
 	}

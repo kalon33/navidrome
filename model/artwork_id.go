@@ -31,6 +31,7 @@ var (
 	KindPlaylistArtwork  = Kind{"pl", "playlist"}
 	KindDiscArtwork      = Kind{"dc", "disc"}
 	KindRadioArtwork     = Kind{"ra", "radio"}
+	KindPodcastArtwork   = Kind{"pc", "podcast"}
 )
 
 var artworkKindMap = map[string]Kind{
@@ -40,6 +41,7 @@ var artworkKindMap = map[string]Kind{
 	KindPlaylistArtwork.prefix:  KindPlaylistArtwork,
 	KindDiscArtwork.prefix:      KindDiscArtwork,
 	KindRadioArtwork.prefix:     KindRadioArtwork,
+	KindPodcastArtwork.prefix:   KindPodcastArtwork,
 }
 
 // KindPrefixes leaves the typed Kind domain for the item_kind column, or for a help string.
