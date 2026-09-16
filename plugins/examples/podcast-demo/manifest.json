@@ -1,0 +1,6 @@
+{
+  "name": "Podcast Demo",
+  "author": "Navidrome",
+  "version": "1.0.0",
+  "description": "A demo podcast backend plugin (in-memory) that implements the Subsonic podcast API endpoints."
+}

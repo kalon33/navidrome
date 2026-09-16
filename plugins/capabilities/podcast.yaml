@@ -1,0 +1,329 @@
+version: v1-draft
+exports:
+    nd_podcast_get_channels:
+        description: GetChannels returns all podcast channels the plugin subscribes to,
+            optionally including their episodes.
+        input:
+            $ref: '#/components/schemas/GetPodcastChannelsRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/GetPodcastChannelsResponse'
+            contentType: application/json
+    nd_podcast_get_channel:
+        description: GetChannel returns a single podcast channel by ID, optionally including
+            its episodes.
+        input:
+            $ref: '#/components/schemas/GetPodcastChannelRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/GetPodcastChannelResponse'
+            contentType: application/json
+    nd_podcast_get_newest_episodes:
+        description: GetNewestEpisodes returns the most recently published podcast episodes.
+        input:
+            $ref: '#/components/schemas/GetNewestEpisodesRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/GetNewestEpisodesResponse'
+            contentType: application/json
+    nd_podcast_create_channel:
+        description: CreateChannel subscribes to a new podcast channel from the given feed
+            URL.
+        input:
+            $ref: '#/components/schemas/CreatePodcastChannelRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/CreatePodcastChannelResponse'
+            contentType: application/json
+    nd_podcast_refresh_channels:
+        description: RefreshChannels requests the plugin to check for new podcast episodes.
+            If ChannelIDs is empty, all channels are refreshed.
+        input:
+            $ref: '#/components/schemas/RefreshPodcastsRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/RefreshPodcastsResponse'
+            contentType: application/json
+    nd_podcast_download_episode:
+        description: DownloadEpisode requests the plugin to start downloading a given podcast
+            episode.
+        input:
+            $ref: '#/components/schemas/DownloadPodcastEpisodeRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/DownloadPodcastEpisodeResponse'
+            contentType: application/json
+    nd_podcast_delete_channel:
+        description: DeleteChannel deletes a podcast channel.
+        input:
+            $ref: '#/components/schemas/DeletePodcastChannelRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/DeletePodcastChannelResponse'
+            contentType: application/json
+    nd_podcast_delete_episode:
+        description: DeleteEpisode deletes a podcast episode.
+        input:
+            $ref: '#/components/schemas/DeletePodcastEpisodeRequest'
+            contentType: application/json
+        output:
+            $ref: '#/components/schemas/DeletePodcastEpisodeResponse'
+            contentType: application/json
+components:
+    schemas:
+        GetPodcastChannelsRequest:
+            description: GetPodcastChannelsRequest is the request for GetChannels.
+            properties:
+                includeEpisodes:
+                    type: boolean
+                    description: IncludeEpisodes controls whether episodes are returned with
+                        each channel.
+            required:
+                - includeEpisodes
+        GetPodcastChannelsResponse:
+            description: GetPodcastChannelsResponse is the response for GetChannels.
+            properties:
+                channels:
+                    type: array
+                    description: Channels is the list of podcast channels.
+                    items:
+                        $ref: '#/components/schemas/PodcastChannel'
+            required:
+                - channels
+        GetPodcastChannelRequest:
+            description: GetPodcastChannelRequest is the request for GetChannel.
+            properties:
+                id:
+                    type: string
+                    description: ID is the channel ID.
+                includeEpisodes:
+                    type: boolean
+                    description: IncludeEpisodes controls whether episodes are returned with
+                        the channel.
+            required:
+                - id
+                - includeEpisodes
+        GetPodcastChannelResponse:
+            description: GetPodcastChannelResponse is the response for GetChannel.
+            properties:
+                channel:
+                    $ref: '#/components/schemas/PodcastChannel'
+                    description: Channel is the requested podcast channel.
+            required:
+                - channel
+        GetNewestEpisodesRequest:
+            description: GetNewestEpisodesRequest is the request for GetNewestEpisodes.
+            properties:
+                count:
+                    type: integer
+                    format: int32
+                    description: Count is the maximum number of episodes to return.
+            required:
+                - count
+        GetNewestEpisodesResponse:
+            description: GetNewestEpisodesResponse is the response for GetNewestEpisodes.
+            properties:
+                episodes:
+                    type: array
+                    description: Episodes is the list of most recently published episodes.
+                    items:
+                        $ref: '#/components/schemas/PodcastEpisode'
+            required:
+                - episodes
+        CreatePodcastChannelRequest:
+            description: CreatePodcastChannelRequest is the request for CreateChannel.
+            properties:
+                url:
+                    type: string
+                    description: URL is the feed URL of the podcast to subscribe to.
+            required:
+                - url
+        CreatePodcastChannelResponse:
+            description: CreatePodcastChannelResponse is the response for CreateChannel.
+            properties:
+                channel:
+                    $ref: '#/components/schemas/PodcastChannel'
+                    description: Channel is the newly created podcast channel, if the plugin
+                        created it synchronously. May be empty when creation is deferred.
+        RefreshPodcastsRequest:
+            description: RefreshPodcastsRequest is the request for RefreshChannels.
+            properties:
+                channelIds:
+                    type: array
+                    description: ChannelIDs is the list of channel IDs to refresh. When empty,
+                        the plugin should refresh all channels.
+                    items:
+                        type: string
+        RefreshPodcastsResponse:
+            description: RefreshPodcastsResponse is the response for RefreshChannels.
+            properties:
+                refreshed:
+                    type: array
+                    description: Refreshed is the list of channel IDs that were refreshed.
+                    items:
+                        type: string
+        DownloadPodcastEpisodeRequest:
+            description: DownloadPodcastEpisodeRequest is the request for DownloadEpisode.
+            properties:
+                id:
+                    type: string
+                    description: ID is the podcast episode ID to download.
+            required:
+                - id
+        DownloadPodcastEpisodeResponse:
+            description: DownloadPodcastEpisodeResponse is the response for DownloadEpisode.
+            properties:
+                episode:
+                    $ref: '#/components/schemas/PodcastEpisode'
+                    description: Episode is the updated episode, with its new status, if available.
+        DeletePodcastChannelRequest:
+            description: DeletePodcastChannelRequest is the request for DeleteChannel.
+            properties:
+                id:
+                    type: string
+                    description: ID is the channel ID to delete.
+            required:
+                - id
+        DeletePodcastChannelResponse:
+            description: DeletePodcastChannelResponse is the response for DeleteChannel.
+            properties:
+                deleted:
+                    type: boolean
+                    description: Deleted is true when the channel was deleted.
+            required:
+                - deleted
+        DeletePodcastEpisodeRequest:
+            description: DeletePodcastEpisodeRequest is the request for DeleteEpisode.
+            properties:
+                id:
+                    type: string
+                    description: ID is the episode ID to delete.
+            required:
+                - id
+        DeletePodcastEpisodeResponse:
+            description: DeletePodcastEpisodeResponse is the response for DeleteEpisode.
+            properties:
+                deleted:
+                    type: boolean
+                    description: Deleted is true when the episode was deleted.
+            required:
+                - deleted
+        PodcastChannel:
+            description: PodcastChannel represents a podcast channel (RSS feed subscription).
+            properties:
+                id:
+                    type: string
+                    description: ID is the channel ID.
+                url:
+                    type: string
+                    description: URL is the podcast channel feed URL.
+                title:
+                    type: string
+                    description: Title is the channel title.
+                description:
+                    type: string
+                    description: Description is the channel description.
+                coverArt:
+                    type: string
+                    description: CoverArt is an ID used for retrieving cover art.
+                originalImageUrl:
+                    type: string
+                    description: OriginalImageUrl is the URL of the original channel image.
+                status:
+                    type: string
+                    description: Status is the channel status.
+                    enum:
+                        - new
+                        - downloading
+                        - completed
+                        - error
+                        - deleted
+                        - skipped
+                errorMessage:
+                    type: string
+                    description: ErrorMessage is an error message, if status is "error".
+                episodes:
+                    type: array
+                    description: Episodes are the podcast episodes for this channel.
+                    items:
+                        $ref: '#/components/schemas/PodcastEpisode'
+            required:
+                - id
+                - url
+                - status
+        PodcastEpisode:
+            description: PodcastEpisode represents a podcast episode.
+            properties:
+                id:
+                    type: string
+                    description: ID is the episode ID.
+                streamId:
+                    type: string
+                    description: StreamID is the ID used for streaming the episode. When the
+                        episode is downloaded, this may be a library media file ID; otherwise
+                        it may be the episode ID itself or empty.
+                channelId:
+                    type: string
+                    description: ChannelID is the ID of the podcast channel this episode belongs
+                        to.
+                title:
+                    type: string
+                    description: Title is the episode title.
+                description:
+                    type: string
+                    description: Description is the episode description.
+                publishDate:
+                    type: string
+                    description: PublishDate is the publication date as an ISO 8601 string.
+                status:
+                    type: string
+                    description: Status is the episode status.
+                    enum:
+                        - new
+                        - downloading
+                        - completed
+                        - error
+                        - deleted
+                        - skipped
+                errorMessage:
+                    type: string
+                    description: ErrorMessage is an error message, if status is "error".
+                streamUrl:
+                    type: string
+                    description: StreamURL is the URL to stream the episode from (when not
+                        downloaded).
+                coverArt:
+                    type: string
+                    description: CoverArt is an ID used for retrieving cover art.
+                year:
+                    type: integer
+                    format: int32
+                    description: Year is the publication year.
+                genre:
+                    type: string
+                    description: Genre is the genre (commonly "Podcast").
+                duration:
+                    type: integer
+                    format: int32
+                    description: Duration is the episode duration in seconds.
+                bitRate:
+                    type: integer
+                    format: int32
+                    description: BitRate is the episode bit rate in kbps.
+                size:
+                    type: integer
+                    format: int64
+                    description: Size is the episode size in bytes.
+                contentType:
+                    type: string
+                    description: ContentType is the MIME content type of the episode.
+                suffix:
+                    type: string
+                    description: Suffix is the file suffix (e.g. "mp3").
+                path:
+                    type: string
+                    description: Path is the relative path of the downloaded file, if available.
+            required:
+                - id
+                - channelId
+                - status
