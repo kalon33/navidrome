@@ -100,7 +100,11 @@ const getCoverArtUrl = (record, size, square) => {
   } else if (record.isPodcast) {
     // Podcast channel/episode cover, resolved server-side via the channel
     return baseUrl(
-      url('getCoverArt', 'pc-' + (record.channelId || record.id) + suffix, options),
+      url(
+        'getCoverArt',
+        'pc-' + (record.channelId || record.id) + suffix,
+        options,
+      ),
     )
   } else if (record.streamUrl !== undefined) {
     // This is a radio station
