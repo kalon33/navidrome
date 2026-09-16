@@ -407,6 +407,34 @@ func itunesDurationToSeconds(s string) int32 {
 	return total
 }
 
+// defaultEpisodeStatus returns the status for a newly fetched episode. Episodes
+// whose enclosure URL is reachable for streaming are "completed": they are
+// immediately playable from the publisher's URL, so Subsonic clients that only
+// surface "completed" episodes (e.g. Tempus) display and stream them. Episodes
+// without a usable enclosure fall back to "new".
+func defaultEpisodeStatus(enclosureURL string) podcast.PodcastStatus {
+	if strings.TrimSpace(enclosureURL) != "" {
+		return podcast.PodcastStatusCompleted
+	}
+	return podcast.PodcastStatusNew
+}
+
+// preservedStatus keeps a previously recorded user/system status across feed
+// refreshes for states that should not be reset to the default. "completed" is
+// also preserved so that an episode verified reachable stays available even if
+// the enclosure URL temporarily changes. "new" is not preserved: a refreshed
+// episode is re-evaluated against its enclosure.
+func preservedStatus(prev podcast.PodcastStatus) podcast.PodcastStatus {
+	switch prev {
+	case podcast.PodcastStatusCompleted,
+		podcast.PodcastStatusError,
+		podcast.PodcastStatusSkipped,
+		podcast.PodcastStatusDeleted:
+		return prev
+	}
+	return podcast.PodcastStatusNew
+}
+
 // feedToChannel builds a PodcastChannel from a parsed RSS feed, preserving any
 // existing episode download status keyed by episode ID.
 func feedToChannel(feedURL string, feed *rssFeed, existing map[string]podcast.PodcastEpisode) podcast.PodcastChannel {
@@ -434,7 +462,7 @@ func feedToChannel(feedURL string, feed *rssFeed, existing map[string]podcast.Po
 			Title:       it.Title,
 			Description: it.Description,
 			PublishDate: iso,
-			Status:      podcast.PodcastStatusNew,
+			Status:      defaultEpisodeStatus(it.Enclosure.URL),
 			StreamURL:   it.Enclosure.URL,
 			CoverArt:    cover,
 			Year:        yearFromISO(iso),
@@ -445,7 +473,7 @@ func feedToChannel(feedURL string, feed *rssFeed, existing map[string]podcast.Po
 			Suffix:      enclosureSuffix(it.Enclosure.Type, it.Enclosure.URL),
 		}
 		if prev, ok := existing[epID]; ok {
-			ep.Status = prev.Status
+			ep.Status = preservedStatus(prev.Status)
 			ep.ErrorMessage = prev.ErrorMessage
 		}
 		episodes = append(episodes, ep)
@@ -679,6 +707,11 @@ func (p *podcastPlugin) DownloadEpisode(req podcast.DownloadPodcastEpisodeReques
 		}
 		for i := range sc.Episodes {
 			if sc.Episodes[i].ID == req.ID {
+				sc.Episodes[i].Status = podcast.PodcastStatusDownloading
+				sc.Episodes[i].ErrorMessage = ""
+				if err := saveChannel(sc); err != nil {
+					return nil, err
+				}
 				resp, err := host.HTTPSend(host.HTTPRequest{
 					Method:    "HEAD",
 					URL:       sc.Episodes[i].StreamURL,

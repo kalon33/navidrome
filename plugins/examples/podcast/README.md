@@ -27,11 +27,19 @@ feed refreshes via the Scheduler host service.
 - **Refresh** (`refreshPodcasts`, plus the scheduled callback): re-fetches each
   feed, merges new episodes, and preserves the download status of episodes that
   were already known.
-- **Download** (`downloadPodcastEpisode`): verifies the episode enclosure is
-  reachable (HEAD request) and marks it `completed`/`error`. Episodes are not
-  written to disk: their `streamUrl` points at the enclosure so Subsonic clients
-  stream directly from the publisher. A backend that needs offline copies
-  would download the file via the Storage host service.
+- **Episode status**: episodes with a reachable enclosure URL are marked
+  `completed` by default, since they are immediately streamable from the
+  publisher's URL. This makes episodes visible and playable in Subsonic
+  clients that only surface `completed` episodes (e.g. Tempus). Episodes
+  without a usable enclosure are `new`. The full OpenSubsonic PodcastStatus
+  surface is supported: `new`, `downloading`, `completed`, `error`, `deleted`,
+  `skipped`.
+- **Download** (`downloadPodcastEpisode`): transitions the episode to
+  `downloading`, verifies the enclosure is reachable (HEAD request), then sets
+  `completed`/`error` accordingly. Episodes are not written to disk: their
+  `streamUrl` points at the enclosure so Subsonic clients stream directly from
+  the publisher. A backend that needs offline copies would download the file
+  via the Storage host service.
 - **Delete** (`deletePodcastChannel`, `deletePodcastEpisode`): removes the
   channel/episode from the KVStore.
 - **Auto-refresh**: on load (`nd_on_init`) the plugin registers a recurring
