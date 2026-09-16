@@ -132,7 +132,7 @@ const Admin = (props) => {
           name="radio"
           {...(permissions === 'admin' ? radio.admin : radio.all)}
         />,
-        <Resource name="podcast" {...podcast} />,
+        config.podcastEnabled && <Resource name="podcast" {...podcast} />,
         config.enableSharing && <Resource name="share" {...share} />,
         <Resource
           name="playlist"

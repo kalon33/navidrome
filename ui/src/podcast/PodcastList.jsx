@@ -95,7 +95,7 @@ const PodcastList = () => {
       const data = await subsonic.getPodcasts()
       setChannels(data)
     } catch (e) {
-      notify('message.podcastLoadError', 'warning')
+      notify(e.message || 'message.podcastLoadError', { type: 'warning' })
     }
     setLoading(false)
   }, [notify])
@@ -110,7 +110,7 @@ const PodcastList = () => {
       await subsonic.refreshPodcasts()
       await load()
     } catch (e) {
-      notify('message.podcastRefreshError', 'warning')
+      notify(e.message || 'message.podcastRefreshError', { type: 'warning' })
     }
     setRefreshing(false)
   }
@@ -125,7 +125,7 @@ const PodcastList = () => {
       notify('message.podcastChannelAdded', 'success')
       await load()
     } catch (e) {
-      notify('message.podcastAddError', 'warning')
+      notify(e.message || 'message.podcastAddError', { type: 'warning' })
     }
     setCreating(false)
   }
@@ -136,7 +136,7 @@ const PodcastList = () => {
       notify('message.podcastChannelDeleted', 'success')
       await load()
     } catch (e) {
-      notify('message.podcastDeleteError', 'warning')
+      notify(e.message || 'message.podcastDeleteError', { type: 'warning' })
     }
   }
 
