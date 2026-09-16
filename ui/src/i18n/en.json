@@ -420,6 +420,34 @@
         "configKey": "key",
         "configValue": "value"
       }
+    },
+    "podcast": {
+      "name": "Podcast |||| Podcasts",
+      "empty": "No podcasts subscribed. Click the add button to subscribe to an RSS feed.",
+      "noEpisodes": "No episodes found for this channel.",
+      "notFound": "Podcast channel not found.",
+      "fields": {
+        "feedUrl": "RSS Feed URL",
+        "title": "Title",
+        "description": "Description",
+        "url": "Feed URL",
+        "status": "Status",
+        "publishDate": "Published",
+        "duration": "Duration"
+      },
+      "actions": {
+        "add": "Add Podcast",
+        "play": "Play",
+        "playAll": "Play All",
+        "addToQueue": "Add to Queue",
+        "download": "Download"
+      },
+      "status": {
+        "downloaded": "Downloaded",
+        "downloading": "Downloading",
+        "skipped": "New",
+        "error": "Error"
+      }
     }
   },
   "ra": {
@@ -611,7 +639,17 @@
     "shareSuccess": "URL copied to clipboard: %{url}",
     "shareFailure": "Error copying URL %{url} to clipboard",
     "downloadDialogTitle": "Download %{resource} '%{name}' (%{size})",
-    "downloadOriginalFormat": "Download in original format"
+    "downloadOriginalFormat": "Download in original format",
+    "podcastLoadError": "Error loading podcasts",
+    "podcastRefreshError": "Error refreshing podcasts",
+    "podcastChannelAdded": "Podcast channel added",
+    "podcastAddError": "Error adding podcast channel",
+    "podcastChannelDeleted": "Podcast channel deleted",
+    "podcastDeleteError": "Error deleting podcast",
+    "podcastDownloadStarted": "Download started",
+    "podcastDownloadError": "Error downloading episode",
+    "podcastEpisodeDeleted": "Episode deleted",
+    "queueAdded": "Added to queue"
   },
   "menu": {
     "library": "Library",

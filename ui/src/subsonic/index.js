@@ -140,6 +140,42 @@ const streamUrl = (id, options) => {
   )
 }
 
+const getPodcasts = (id) => {
+  const options = { includeEpisodes: true }
+  if (id) {
+    options.id = id
+  }
+  return httpClient(url('getPodcasts', null, options)).then(
+    (resp) => resp.json['subsonic-response'].podcasts?.channel || [],
+  )
+}
+
+const getNewestPodcasts = (count = 20) => {
+  return httpClient(url('getNewestPodcasts', null, { count })).then(
+    (resp) => resp.json['subsonic-response'].newestPodcasts?.episode || [],
+  )
+}
+
+const getPodcastEpisode = (id) => {
+  return httpClient(url('getPodcastEpisode', null, { id })).then(
+    (resp) => resp.json['subsonic-response'].podcastEpisode,
+  )
+}
+
+const createPodcastChannel = (feedUrl) =>
+  httpClient(url('createPodcastChannel', null, { url: feedUrl }))
+
+const refreshPodcasts = () => httpClient(url('refreshPodcasts'))
+
+const downloadPodcastEpisode = (id) =>
+  httpClient(url('downloadPodcastEpisode', null, { id }))
+
+const deletePodcastChannel = (id) =>
+  httpClient(url('deletePodcastChannel', null, { id }))
+
+const deletePodcastEpisode = (id) =>
+  httpClient(url('deletePodcastEpisode', null, { id }))
+
 export default {
   url,
   ping,
@@ -156,6 +192,14 @@ export default {
   getDiscCoverArtUrl,
   getAvatarUrl,
   streamUrl,
+  getPodcasts,
+  getNewestPodcasts,
+  getPodcastEpisode,
+  createPodcastChannel,
+  refreshPodcasts,
+  downloadPodcastEpisode,
+  deletePodcastChannel,
+  deletePodcastEpisode,
   getAlbumInfo,
   getArtistInfo,
   getTopSongs,

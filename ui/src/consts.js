@@ -25,6 +25,7 @@ DraggableTypes.ALL.push(
 )
 
 export const RADIO_PLACEHOLDER_IMAGE = 'internet-radio-icon.svg'
+export const PODCAST_PLACEHOLDER_IMAGE = 'podcast-icon.svg'
 
 export const DEFAULT_SHARE_BITRATE = 128
 

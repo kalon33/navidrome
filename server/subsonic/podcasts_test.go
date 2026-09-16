@@ -114,6 +114,7 @@ var _ = Describe("Podcasts", func() {
 							{
 								ID:          "ep-1",
 								StreamID:    "ep-1",
+								StreamURL:   "https://example.com/episode1.mp3",
 								ChannelID:   "ch-1",
 								Title:       "Episode 1",
 								Status:      capabilities.PodcastStatusCompleted,
@@ -152,6 +153,8 @@ var _ = Describe("Podcasts", func() {
 			Expect(ch.Episode).To(HaveLen(1))
 			Expect(ch.Episode[0].Id).To(Equal("ep-1"))
 			Expect(ch.Episode[0].ChannelId).To(Equal("ch-1"))
+			Expect(ch.Episode[0].StreamId).To(Equal("ep-1"))
+			Expect(ch.Episode[0].StreamUrl).To(Equal("https://example.com/episode1.mp3"))
 			Expect(ch.Episode[0].Status).To(Equal("completed"))
 		})
 
