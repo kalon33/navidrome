@@ -26,9 +26,9 @@ describe('podcast helper', () => {
     it('returns the episode status', () => {
       expect(episodeStatus({ status: 'completed' })).toBe('completed')
     })
-    it('defaults to skipped when status missing', () => {
-      expect(episodeStatus({})).toBe('skipped')
-      expect(episodeStatus(undefined)).toBe('skipped')
+    it('defaults to new when status missing', () => {
+      expect(episodeStatus({})).toBe('new')
+      expect(episodeStatus(undefined)).toBe('new')
     })
   })
 

@@ -434,7 +434,7 @@ func feedToChannel(feedURL string, feed *rssFeed, existing map[string]podcast.Po
 			Title:       it.Title,
 			Description: it.Description,
 			PublishDate: iso,
-			Status:      podcast.PodcastStatusSkipped,
+			Status:      podcast.PodcastStatusNew,
 			StreamURL:   it.Enclosure.URL,
 			CoverArt:    cover,
 			Year:        yearFromISO(iso),

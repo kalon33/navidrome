@@ -127,6 +127,8 @@ const statusLabel = (status, translate) => {
       return translate('resources.podcast.status.downloading')
     case 'error':
       return translate('resources.podcast.status.error')
+    case 'new':
+      return translate('resources.podcast.status.new')
     case 'skipped':
     default:
       return translate('resources.podcast.status.skipped')

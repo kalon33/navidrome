@@ -1,7 +1,7 @@
 import subsonic from '../subsonic'
 import { PODCAST_PLACEHOLDER_IMAGE } from '../consts'
 
-export const episodeStatus = (ep) => ep?.status || 'skipped'
+export const episodeStatus = (ep) => ep?.status || 'new'
 
 export const isDownloaded = (ep) => episodeStatus(ep) === 'completed'
 

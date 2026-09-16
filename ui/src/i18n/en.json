@@ -445,6 +445,7 @@
       "status": {
         "downloaded": "Downloaded",
         "downloading": "Downloading",
+        "new": "New",
         "skipped": "New",
         "error": "Error"
       }
