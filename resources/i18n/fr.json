@@ -407,6 +407,34 @@
         "configKey": "clef",
         "configValue": "valeur"
       }
+    },
+    "podcast": {
+      "name": "Podcast |||| Podcasts",
+      "empty": "Aucun podcast abonné. Cliquez sur le bouton ajouter pour vous abonner à un flux RSS.",
+      "noEpisodes": "Aucun épisode trouvé pour cette chaîne.",
+      "notFound": "Chaîne de podcast introuvable.",
+      "fields": {
+        "feedUrl": "URL du flux RSS",
+        "title": "Titre",
+        "description": "Description",
+        "url": "URL du flux",
+        "status": "Statut",
+        "publishDate": "Publié le",
+        "duration": "Durée"
+      },
+      "actions": {
+        "add": "Ajouter un podcast",
+        "play": "Lire",
+        "playAll": "Tout lire",
+        "addToQueue": "Ajouter à la file",
+        "download": "Télécharger"
+      },
+      "status": {
+        "downloaded": "Téléchargé",
+        "downloading": "Téléchargement en cours",
+        "skipped": "Nouveau",
+        "error": "Erreur"
+      }
     }
   },
   "ra": {
@@ -597,7 +625,17 @@
     "coverUploaded": "Pochette mise à jour",
     "coverRemoved": "Pochette supprimée",
     "coverUploadError": "Erreur lors du téléversement de la pochette",
-    "coverRemoveError": "Erreur lors de la suppression de la pochette"
+    "coverRemoveError": "Erreur lors de la suppression de la pochette",
+    "podcastLoadError": "Erreur lors du chargement des podcasts",
+    "podcastRefreshError": "Erreur lors de l'actualisation des podcasts",
+    "podcastChannelAdded": "Chaîne de podcast ajoutée",
+    "podcastAddError": "Erreur lors de l'ajout de la chaîne de podcast",
+    "podcastChannelDeleted": "Chaîne de podcast supprimée",
+    "podcastDeleteError": "Erreur lors de la suppression du podcast",
+    "podcastDownloadStarted": "Téléchargement démarré",
+    "podcastDownloadError": "Erreur lors du téléchargement de l'épisode",
+    "podcastEpisodeDeleted": "Épisode supprimé",
+    "queueAdded": "Ajouté à la file"
   },
   "menu": {
     "library": "Bibliothèque",
