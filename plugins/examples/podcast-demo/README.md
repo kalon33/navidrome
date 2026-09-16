@@ -1,20 +1,70 @@
-# Podcast Demo Navidrome Plugin
+# Podcast Navidrome Plugin
 
-A minimal, in-memory podcast backend plugin that implements the Navidrome
-**Podcast** capability and serves the Subsonic podcast API endpoints
-(`getPodcasts`, `getNewestPodcasts`, `getPodcastEpisode`, `createPodcastChannel`, `refreshPodcasts`,
-`downloadPodcastEpisode`, `deletePodcastChannel`, `deletePodcastEpisode`).
+A functional **RSS podcast backend** plugin that implements the Navidrome
+**Podcast** capability and serves the full Subsonic podcast API surface
+(`getPodcasts`, `getNewestPodcasts`, `getPodcastEpisode`, `createPodcastChannel`,
+`refreshPodcasts`, `downloadPodcastEpisode`, `deletePodcastChannel`,
+`deletePodcastEpisode`).
 
-It serves a single hard-coded channel with one episode, and treats the
-management operations as no-ops against the in-memory store. It is intended as a
-reference implementation to demonstrate the capability surface.
+Unlike a stub, this plugin is a real backend: it subscribes to RSS feeds,
+fetches and parses them over the HTTP host service, persists channels and
+episodes in the KVStore (surviving Navidrome restarts), and schedules periodic
+feed refreshes via the Scheduler host service.
+
+## How it works
+
+- **Subscribe** (`createPodcastChannel`): fetches the feed URL, parses the RSS
+  2.0 feed (`encoding/xml`, with iTunes namespace extensions), and stores the
+  channel + episodes in the KVStore.
+- **Persistence**: channels are stored under `channel:<id>`, with a
+  `channel-url:<url> -> <id>` index for de-duplication and an `index:channels`
+  list. IDs are stable, derived from `sha256(url)` for channels and
+  `sha256(channelID:guid)` for episodes, so clients can bookmark and stream
+  them across restarts.
+- **List/Get** (`getPodcasts`, `getNewestPodcasts`, `getPodcastEpisode`): read
+  from the KVStore. `getNewestPodcasts` returns the most recently published
+  episodes across all channels, sorted by `publishDate`.
+- **Refresh** (`refreshPodcasts`, plus the scheduled callback): re-fetches each
+  feed, merges new episodes, and preserves the download status of episodes that
+  were already known.
+- **Download** (`downloadPodcastEpisode`): verifies the episode enclosure is
+  reachable (HEAD request) and marks it `completed`/`error`. Episodes are not
+  written to disk: their `streamUrl` points at the enclosure so Subsonic clients
+  stream directly from the publisher. A backend that needs offline copies
+  would download the file via the Storage host service.
+- **Delete** (`deletePodcastChannel`, `deletePodcastEpisode`): removes the
+  channel/episode from the KVStore.
+- **Auto-refresh**: on load (`nd_on_init`) the plugin registers a recurring
+  schedule (`refreshSchedule` config, default `0 * * * *` = hourly) that
+  triggers a refresh of all subscribed feeds via the `nd_scheduler_callback`.
+
+## Configuration
+
+The manifest declares a `refreshSchedule` config option (cron expression,
+default every hour). Configure it from the Navidrome web UI or leave empty to
+disable automatic refreshes. Subscriptions themselves are added at runtime via
+the Subsonic `createPodcastChannel` endpoint (e.g. from a Subsonic client).
+
+## Permissions
+
+| Service   | Reason                                              |
+|-----------|-----------------------------------------------------|
+| `http`    | Fetch and parse podcast RSS feeds from the public web |
+| `kvstore` | Persist channel subscriptions and episodes across restarts |
+| `scheduler` | Schedule periodic podcast feed refreshes           |
+
+HTTP `requiredHosts` is intentionally left open: podcast feeds live on
+arbitrary public hosts. Navidrome's SSRF protection still blocks private,
+loopback, and link-local addresses unless an explicit IP/CIDR is added.
 
 ## Building
 
-1. Install [TinyGo](https://tinygo.org/getting-started/install/)
+1. Install [TinyGo](https://tinygo.org/getting-started/install/) (produces
+   smaller binaries). Standard `GOOS=wasip1 GOARCH=wasm go build` also works.
 2. Build the plugin:
 
    ```bash
+   cd plugins/examples/podcast-demo
    go mod tidy
    tinygo build -o plugin.wasm -target wasip1 -buildmode=c-shared .
    zip -j podcast-demo.ndp manifest.json plugin.wasm
@@ -30,29 +80,22 @@ reference implementation to demonstrate the capability surface.
 ## Installing
 
 Copy `podcast-demo.ndp` to your Navidrome plugins folder (default:
-`<data-folder>/plugins/`).
-
-Enable plugins in your `navidrome.toml`:
+`<data-folder>/plugins/`) and enable plugins in your `navidrome.toml`:
 
 ```toml
 [Plugins]
 Enabled = true
 ```
 
-Once enabled, the Subsonic podcast endpoints will return the demo data instead
-of the "not implemented" response.
+Once enabled, the Subsonic podcast endpoints are served by this plugin instead
+of returning "no podcast provider configured".
 
-## Building a real backend
+## Extending
 
-This demo is in-memory and resets on every call. A real podcast backend should:
-
-- Use the **HTTP** host service to fetch and parse RSS feeds.
-- Use the **KVStore** host service to persist channels and episodes across
-  restarts.
-- Use the **Scheduler** host service to refresh feeds periodically (export the
-  `nd_scheduler_callback` capability function to receive scheduled events).
-- Use the **Task** host service to download episodes in the background (export
-  the `nd_task_execute` capability function to process download tasks).
-- Return stable channel/episode IDs so clients can bookmark and stream them.
+This backend streams episodes directly from the publisher's enclosure URL. To
+support offline playback, extend `DownloadEpisode` to download the enclosure
+to the `/storage` directory via the Storage host service and set the episode's
+`path`/`suffix`/`contentType` to the local file, leaving `streamUrl` empty so
+Navidrome streams the downloaded file instead.
 
 See `plugins/README.md` for the full host service reference.

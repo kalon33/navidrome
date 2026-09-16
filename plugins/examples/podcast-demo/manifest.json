@@ -1,6 +1,32 @@
 {
-  "name": "Podcast Demo",
+  "name": "Podcast",
   "author": "Navidrome",
   "version": "1.0.0",
-  "description": "A demo podcast backend plugin (in-memory) that implements the Subsonic podcast API endpoints."
+  "description": "RSS podcast backend: subscribes to feeds, fetches/parses them over HTTP, persists channels and episodes, and schedules periodic refreshes.",
+  "website": "https://navidrome.org",
+  "config": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "refreshSchedule": {
+          "type": "string",
+          "title": "Refresh schedule",
+          "description": "Cron expression for periodic feed refreshes (default: every hour). Leave empty to disable auto-refresh.",
+          "default": "0 * * * *"
+        }
+      }
+    }
+  },
+  "permissions": {
+    "http": {
+      "reason": "Fetch and parse podcast RSS feeds from the public web"
+    },
+    "kvstore": {
+      "reason": "Persist podcast channel subscriptions and episodes across restarts",
+      "maxSize": "10MB"
+    },
+    "scheduler": {
+      "reason": "Schedule periodic podcast feed refreshes"
+    }
+  }
 }
