@@ -31,6 +31,7 @@ import {
   isDownloaded,
   formatEpisodeDate,
 } from './helper'
+import { SafeHTML } from '../common/SafeHTML'
 import { playTracks, addTracks, setTrack } from '../actions'
 import { formatDuration } from '../utils'
 
@@ -83,14 +84,34 @@ const useStyles = makeStyles((theme) => ({
   episodeAvatar: {
     borderRadius: 4,
   },
+  episodeContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    overflow: 'hidden',
+  },
   episodeTitle: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  },
+  episodeTitleText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   statusChip: {
     fontSize: '0.7rem',
-    marginLeft: theme.spacing(1),
+    flexShrink: 0,
+  },
+  episodeMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    color: theme.palette.text.secondary,
+    fontSize: '0.875rem',
   },
   empty: {
     padding: theme.spacing(4),
@@ -259,8 +280,12 @@ const PodcastShow = () => {
         />
         <div className={classes.headerInfo}>
           <Typography variant="h5">{channel.title || channel.url}</Typography>
-          <Typography variant="body2" className={classes.description}>
-            {channel.description}
+          <Typography
+            variant="body2"
+            className={classes.description}
+            component="div"
+          >
+            <SafeHTML>{channel.description}</SafeHTML>
           </Typography>
           <div className={classes.toolbar}>
             <Button
@@ -304,22 +329,25 @@ const PodcastShow = () => {
                 />
               </ListItemAvatar>
               <ListItemText
+                disableTypography
                 primary={
-                  <span className={classes.episodeTitle}>
-                    {ep.title}
-                    <Typography
-                      component="span"
-                      className={classes.statusChip}
-                      color="textSecondary"
-                    >
-                      {statusLabel(episodeStatus(ep), translate)}
-                    </Typography>
-                  </span>
-                }
-                secondary={
-                  <span>
-                    {formatEpisodeDate(ep.publishDate)}
-                    {ep.duration > 0 && ` · ${formatDuration(ep.duration)}`}
+                  <span className={classes.episodeContent}>
+                    <span className={classes.episodeTitle}>
+                      <span className={classes.episodeTitleText}>
+                        {ep.title}
+                      </span>
+                      <Typography
+                        component="span"
+                        className={classes.statusChip}
+                        color="textSecondary"
+                      >
+                        {statusLabel(episodeStatus(ep), translate)}
+                      </Typography>
+                    </span>
+                    <span className={classes.episodeMeta}>
+                      {formatEpisodeDate(ep.publishDate)}
+                      {ep.duration > 0 && ` · ${formatDuration(ep.duration)}`}
+                    </span>
                   </span>
                 }
               />
