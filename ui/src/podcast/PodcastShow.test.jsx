@@ -140,6 +140,48 @@ describe('<PodcastShow />', () => {
     expect(screen.getAllByText(longTitle)).toHaveLength(1)
   })
 
+  it('renders episode action buttons side by side without overlap', async () => {
+    getPodcastsMock.mockResolvedValue([
+      {
+        id: 'ch-1',
+        title: 'My Channel',
+        description: 'desc',
+        originalImageUrl: 'https://img/cover.jpg',
+        episode: [
+          {
+            id: 'ep-1',
+            streamId: 'ep-1',
+            title: 'Episode One',
+            publishDate: '2024-01-15T00:00:00Z',
+            duration: 0,
+            status: 'completed',
+            streamUrl: 'https://enclosure/a.mp3',
+          },
+        ],
+      },
+    ])
+    const { container } = renderShow()
+    await waitFor(() =>
+      expect(screen.getByText('Episode One')).toBeInTheDocument(),
+    )
+    const actions = container.querySelector('.MuiListItemSecondaryAction-root')
+    expect(actions).not.toBeNull()
+    const buttons = actions.querySelectorAll('button')
+    expect(buttons.length).toBeGreaterThanOrEqual(3)
+    const rects = Array.from(buttons).map((b) => b.getBoundingClientRect())
+    rects.forEach((rect, i) => {
+      rects.forEach((other, j) => {
+        if (i === j) return
+        const overlaps =
+          rect.left < other.right &&
+          rect.right > other.left &&
+          rect.top < other.bottom &&
+          rect.bottom > other.top
+        expect(overlaps).toBe(false)
+      })
+    })
+  })
+
   it('shows the not found state when no channel is returned', async () => {
     getPodcastsMock.mockResolvedValue([])
     renderShow()
