@@ -443,10 +443,17 @@
         "download": "Download"
       },
       "status": {
-        "downloaded": "Downloaded",
+        "new": "New",
         "downloading": "Downloading",
-        "skipped": "New",
-        "error": "Error"
+        "downloaded": "Available",
+        "completed": "Available",
+        "error": "Error",
+        "skipped": "Skipped",
+        "deleted": "Deleted"
+      },
+      "filter": {
+        "all": "All episodes",
+        "downloaded": "Available only"
       }
     }
   },

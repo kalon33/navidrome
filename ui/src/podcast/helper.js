@@ -1,9 +1,25 @@
 import subsonic from '../subsonic'
 import { PODCAST_PLACEHOLDER_IMAGE } from '../consts'
 
-export const episodeStatus = (ep) => ep?.status || 'skipped'
+export const PODCAST_STATUSES = [
+  'new',
+  'downloading',
+  'completed',
+  'error',
+  'skipped',
+  'deleted',
+]
+
+export const episodeStatus = (ep) => ep?.status || 'new'
 
 export const isDownloaded = (ep) => episodeStatus(ep) === 'completed'
+
+export const isPlayable = (ep) => {
+  const s = episodeStatus(ep)
+  return s === 'completed' || s === 'downloading' || s === 'new'
+}
+
+export const isError = (ep) => episodeStatus(ep) === 'error'
 
 export const formatEpisodeDate = (iso) => {
   if (!iso) return ''

@@ -9,6 +9,8 @@ vi.mock('../subsonic', () => ({
 import {
   episodeStatus,
   isDownloaded,
+  isError,
+  isPlayable,
   formatEpisodeDate,
   podcastCoverUrl,
   songFromPodcastEpisode,
@@ -26,9 +28,9 @@ describe('podcast helper', () => {
     it('returns the episode status', () => {
       expect(episodeStatus({ status: 'completed' })).toBe('completed')
     })
-    it('defaults to skipped when status missing', () => {
-      expect(episodeStatus({})).toBe('skipped')
-      expect(episodeStatus(undefined)).toBe('skipped')
+    it('defaults to new when status missing', () => {
+      expect(episodeStatus({})).toBe('new')
+      expect(episodeStatus(undefined)).toBe('new')
     })
   })
 
@@ -38,6 +40,30 @@ describe('podcast helper', () => {
     })
     it('is false otherwise', () => {
       expect(isDownloaded({ status: 'skipped' })).toBe(false)
+      expect(isDownloaded({ status: 'new' })).toBe(false)
+    })
+  })
+
+  describe('isError', () => {
+    it('is true when status is error', () => {
+      expect(isError({ status: 'error' })).toBe(true)
+    })
+    it('is false otherwise', () => {
+      expect(isError({ status: 'completed' })).toBe(false)
+      expect(isError({})).toBe(false)
+    })
+  })
+
+  describe('isPlayable', () => {
+    it('is true for completed, downloading and new', () => {
+      expect(isPlayable({ status: 'completed' })).toBe(true)
+      expect(isPlayable({ status: 'downloading' })).toBe(true)
+      expect(isPlayable({ status: 'new' })).toBe(true)
+    })
+    it('is false for error, deleted and skipped', () => {
+      expect(isPlayable({ status: 'error' })).toBe(false)
+      expect(isPlayable({ status: 'deleted' })).toBe(false)
+      expect(isPlayable({ status: 'skipped' })).toBe(false)
     })
   })
 

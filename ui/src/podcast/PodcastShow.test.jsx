@@ -97,7 +97,7 @@ describe('<PodcastShow />', () => {
             title: 'Episode One',
             publishDate: '2024-01-15T00:00:00Z',
             duration: 0,
-            status: 'skipped',
+            status: 'completed',
             streamUrl: 'https://enclosure/a.mp3',
           },
         ],
@@ -108,7 +108,7 @@ describe('<PodcastShow />', () => {
       expect(screen.getByText('Episode One')).toBeInTheDocument(),
     )
     expect(
-      screen.getByText('resources.podcast.status.skipped'),
+      screen.getByText('resources.podcast.status.downloaded'),
     ).toBeInTheDocument()
     const date = new Date('2024-01-15T00:00:00Z').toLocaleDateString()
     expect(screen.getByText(date)).toBeInTheDocument()
@@ -129,7 +129,7 @@ describe('<PodcastShow />', () => {
             title: longTitle,
             publishDate: '2024-09-02T00:00:00Z',
             duration: 181,
-            status: 'skipped',
+            status: 'completed',
             streamUrl: 'https://enclosure/a.mp3',
           },
         ],

@@ -93,9 +93,10 @@ var _ = Describe("Podcast artwork", func() {
 
 	It("returns unavailable when no resolver is configured", func() {
 		ds := &tests.MockDataStore{}
-		svcNoPod := NewArtwork(ds, cache.NewFileCache("NoPod", "1MB", "images", 0,
-			func(context.Context, cache.Item) (io.Reader, error) { return nil, nil }),
-			NewImageStore(GinkgoT().TempDir()), tests.NewMockFFmpeg(""))
+		noPodCache := cache.NewFileCache("NoPod", "1MB", "images", 0,
+			func(context.Context, cache.Item) (io.Reader, error) { return nil, nil })
+		Eventually(func() bool { return noPodCache.Available(ctx) }, 10*time.Second).Should(BeTrue())
+		svcNoPod := NewArtwork(ds, noPodCache, NewImageStore(GinkgoT().TempDir()), tests.NewMockFFmpeg(""))
 		artID := model.NewArtworkID(model.KindPodcastArtwork, "ch-1", nil)
 		_, err := svcNoPod.Get(ctx, artID, 0, false)
 		Expect(err).To(MatchError(ErrUnavailable))

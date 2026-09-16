@@ -11,6 +11,8 @@ import {
   ListItemSecondaryAction,
   ListItemText,
   makeStyles,
+  Menu,
+  MenuItem,
   Tooltip,
   Typography,
 } from '@material-ui/core'
@@ -23,12 +25,14 @@ import PlaylistAddIcon from '@material-ui/icons/PlaylistAdd'
 import RefreshIcon from '@material-ui/icons/Refresh'
 import CloudDownloadIcon from '@material-ui/icons/CloudDownload'
 import DeleteIcon from '@material-ui/icons/Delete'
+import FilterListIcon from '@material-ui/icons/FilterList'
 import subsonic from '../subsonic'
 import {
   podcastCoverUrl,
   songFromPodcastEpisode,
   episodeStatus,
   isDownloaded,
+  isError,
   formatEpisodeDate,
 } from './helper'
 import { SafeHTML } from '../common/SafeHTML'
@@ -127,9 +131,13 @@ const statusLabel = (status, translate) => {
       return translate('resources.podcast.status.downloading')
     case 'error':
       return translate('resources.podcast.status.error')
+    case 'deleted':
+      return translate('resources.podcast.status.deleted')
     case 'skipped':
-    default:
       return translate('resources.podcast.status.skipped')
+    case 'new':
+    default:
+      return translate('resources.podcast.status.new')
   }
 }
 
@@ -143,6 +151,8 @@ const PodcastShow = () => {
   const [channel, setChannel] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [filterAnchor, setFilterAnchor] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -253,7 +263,11 @@ const PodcastShow = () => {
     )
   }
 
-  const episodes = channel.episode || []
+  const allEpisodes = channel.episode || []
+  const episodes =
+    statusFilter === 'downloaded'
+      ? allEpisodes.filter((ep) => isDownloaded(ep))
+      : allEpisodes
 
   return (
     <Card className={classes.root}>
@@ -293,7 +307,7 @@ const PodcastShow = () => {
               color="primary"
               startIcon={<PlayArrowIcon />}
               onClick={playAll}
-              disabled={episodes.length === 0}
+              disabled={allEpisodes.length === 0}
             >
               {translate('resources.podcast.actions.playAll')}
             </Button>
@@ -308,6 +322,37 @@ const PodcastShow = () => {
                 translate('ra.action.refresh')
               )}
             </Button>
+            <Button
+              startIcon={<FilterListIcon />}
+              onClick={(e) => setFilterAnchor(e.currentTarget)}
+            >
+              {translate('resources.podcast.filter.' + statusFilter)}
+            </Button>
+            <Menu
+              anchorEl={filterAnchor}
+              keepMounted
+              open={Boolean(filterAnchor)}
+              onClose={() => setFilterAnchor(null)}
+            >
+              <MenuItem
+                selected={statusFilter === 'all'}
+                onClick={() => {
+                  setStatusFilter('all')
+                  setFilterAnchor(null)
+                }}
+              >
+                {translate('resources.podcast.filter.all')}
+              </MenuItem>
+              <MenuItem
+                selected={statusFilter === 'downloaded'}
+                onClick={() => {
+                  setStatusFilter('downloaded')
+                  setFilterAnchor(null)
+                }}
+              >
+                {translate('resources.podcast.filter.downloaded')}
+              </MenuItem>
+            </Menu>
           </div>
         </div>
       </div>
@@ -353,25 +398,48 @@ const PodcastShow = () => {
               />
               <ListItemSecondaryAction>
                 <Tooltip title={translate('resources.podcast.actions.play')}>
-                  <IconButton edge="end" onClick={() => playEpisode(ep)}>
-                    <PlayArrowIcon />
-                  </IconButton>
+                  <div>
+                    <IconButton
+                      edge="end"
+                      onClick={() => playEpisode(ep)}
+                      disabled={isError(ep)}
+                    >
+                      <PlayArrowIcon />
+                    </IconButton>
+                  </div>
                 </Tooltip>
                 <Tooltip
                   title={translate('resources.podcast.actions.addToQueue')}
                 >
-                  <IconButton edge="end" onClick={() => addToQueue(ep)}>
-                    <PlaylistAddIcon />
-                  </IconButton>
+                  <div>
+                    <IconButton
+                      edge="end"
+                      onClick={() => addToQueue(ep)}
+                      disabled={isError(ep)}
+                    >
+                      <PlaylistAddIcon />
+                    </IconButton>
+                  </div>
                 </Tooltip>
-                {!isDownloaded(ep) && (
+                {episodeStatus(ep) === 'downloading' ? (
                   <Tooltip
-                    title={translate('resources.podcast.actions.download')}
+                    title={translate('resources.podcast.status.downloading')}
                   >
-                    <IconButton edge="end" onClick={() => handleDownload(ep)}>
-                      <CloudDownloadIcon />
+                    <IconButton edge="end" disabled>
+                      <CircularProgress size={20} />
                     </IconButton>
                   </Tooltip>
+                ) : (
+                  !isDownloaded(ep) &&
+                  !isError(ep) && (
+                    <Tooltip
+                      title={translate('resources.podcast.actions.download')}
+                    >
+                      <IconButton edge="end" onClick={() => handleDownload(ep)}>
+                        <CloudDownloadIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )
                 )}
                 <Tooltip title={translate('ra.action.delete')}>
                   <IconButton
