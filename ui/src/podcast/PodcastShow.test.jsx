@@ -28,6 +28,7 @@ vi.mock('../subsonic', () => ({
   default: {
     getPodcasts: (...a) => getPodcastsMock(...a),
     refreshPodcasts: (...a) => refreshPodcastsMock(...a),
+    getCoverArtUrl: () => '/rest/getCoverArt?id=pc-test',
   },
 }))
 vi.mock('../actions', () => ({
