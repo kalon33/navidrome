@@ -212,6 +212,7 @@ func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 			Type:        "podcast",
 		},
 		StreamId:    ep.StreamID,
+		StreamUrl:   ep.StreamURL,
 		ChannelId:   ep.ChannelID,
 		Description: ep.Description,
 		Status:      string(ep.Status),

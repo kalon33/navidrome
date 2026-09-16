@@ -562,6 +562,7 @@ type PodcastChannel struct {
 type PodcastEpisode struct {
 	Child
 	StreamId    string `xml:"streamId,attr,omitempty"    json:"streamId,omitempty"`
+	StreamUrl   string `xml:"streamUrl,attr,omitempty"   json:"streamUrl,omitempty"`
 	ChannelId   string `xml:"channelId,attr"             json:"channelId"`
 	Description string `xml:"description,attr,omitempty" json:"description,omitempty"`
 	Status      string `xml:"status,attr"                json:"status"`
