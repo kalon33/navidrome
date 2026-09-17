@@ -532,9 +532,55 @@ func refreshCron() string {
 
 func (p *podcastPlugin) OnInit() error {
 	pdk.Log(pdk.LogInfo, "Podcast plugin initializing")
+	if err := migrateStaleErrorStatuses(); err != nil {
+		pdk.Log(pdk.LogWarn, fmt.Sprintf("error status migration failed: %v", err))
+	}
 	_, err := host.SchedulerScheduleRecurring(refreshCron(), "refresh-all", scheduleID)
 	if err != nil {
 		pdk.Log(pdk.LogWarn, fmt.Sprintf("failed to schedule refresh: %v", err))
+	}
+	return nil
+}
+
+// migrateStaleErrorStatuses repairs episodes stuck on "error" that still carry
+// a usable enclosure URL. Before "error" stopped being preserved across feed
+// refreshes, a failed DownloadEpisode verification (rejected User-Agent,
+// transient HTTP error) froze an episode on "error" indefinitely. Clients that
+// only surface "completed" episodes (e.g. Tempus) then hid the episode even
+// though streaming the enclosure directly worked. This runs once at init and
+// promotes any such episode back to "completed" without waiting for the next
+// scheduled feed refresh, so existing stored data is fixed on plugin restart.
+func migrateStaleErrorStatuses() error {
+	ids, err := listChannelIDs()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		sc, exists, lErr := loadChannel(id)
+		if lErr != nil {
+			return lErr
+		}
+		if !exists {
+			continue
+		}
+		changed := false
+		for i := range sc.Episodes {
+			if sc.Episodes[i].Status != podcast.PodcastStatusError {
+				continue
+			}
+			if strings.TrimSpace(sc.Episodes[i].StreamURL) == "" {
+				continue
+			}
+			sc.Episodes[i].Status = podcast.PodcastStatusCompleted
+			sc.Episodes[i].ErrorMessage = ""
+			changed = true
+		}
+		if changed {
+			if sErr := saveChannel(sc); sErr != nil {
+				return sErr
+			}
+			pdk.Log(pdk.LogInfo, fmt.Sprintf("repaired stale error episodes in channel %s", id))
+		}
 	}
 	return nil
 }
