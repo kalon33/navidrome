@@ -429,10 +429,18 @@ func defaultEpisodeStatus(enclosureURL string) podcast.PodcastStatus {
 // enclosure-based default (typically "completed") rather than stay stuck on
 // "skipped", which would hide episodes from Subsonic clients that only surface
 // "completed" episodes (e.g. Tempus).
+//
+// "error" is NOT preserved either: an episode can fall to "error" when a
+// DownloadEpisode verification HEAD request against the enclosure fails (for
+// example the publisher rejects the User-Agent, or returns a transient HTTP
+// error). Once stuck on "error" the episode stays hidden from clients that only
+// surface "completed" episodes, even though streaming the enclosure directly
+// works fine. Re-evaluating a refreshed episode against its enclosure restores
+// it to "completed" as soon as the feed still carries an enclosure URL, instead
+// of staying frozen on a stale verification failure.
 func preservedStatus(prev podcast.PodcastStatus) (podcast.PodcastStatus, bool) {
 	switch prev {
 	case podcast.PodcastStatusCompleted,
-		podcast.PodcastStatusError,
 		podcast.PodcastStatusDeleted:
 		return prev, true
 	}
