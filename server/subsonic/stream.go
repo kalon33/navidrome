@@ -89,7 +89,7 @@ func (api *Router) streamPodcastEpisode(w http.ResponseWriter, r *http.Request, 
 		return nil, newError(responses.ErrorDataNotFound, "podcast episode not streamable: %s", id)
 	}
 
-	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodGet, episode.StreamURL, nil)
+	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodGet, episode.StreamURL, nil) //nolint:gosec // StreamURL is a publisher enclosure from a podcast feed the user subscribed to
 	if err != nil {
 		log.Error(ctx, "Error building podcast stream request", "id", id, "url", episode.StreamURL, err)
 		return nil, newError(responses.ErrorGeneric, "error streaming podcast episode")
@@ -103,7 +103,7 @@ func (api *Router) streamPodcastEpisode(w http.ResponseWriter, r *http.Request, 
 	}
 
 	client := httpclient.New(0)
-	resp, err := client.Do(proxyReq)
+	resp, err := client.Do(proxyReq) //nolint:gosec // proxyReq targets the user-subscribed podcast enclosure
 	if err != nil {
 		log.Error(ctx, "Error fetching podcast enclosure", "id", id, "url", episode.StreamURL, err)
 		return nil, newError(responses.ErrorGeneric, "error streaming podcast episode")
