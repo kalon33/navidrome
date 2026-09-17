@@ -117,6 +117,13 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 			proxyReq.Header.Set(h, v)
 		}
 	}
+	// Request the enclosure byte-for-byte. Go's default Transport adds
+	// "Accept-Encoding: gzip" and transparently decompresses gzipped responses,
+	// which strips Content-Length from the response and breaks seeking/progress
+	// for clients that rely on it. Asking for "identity" makes the publisher
+	// serve the raw bytes with a usable Content-Length, and also keeps Range
+	// requests meaningful (auto-decoding a partial gzipped document fails).
+	proxyReq.Header.Set("Accept-Encoding", "identity")
 
 	client := httpclient.New(0)
 	resp, err := client.Do(proxyReq) //nolint:gosec // proxyReq targets the user-subscribed podcast enclosure
@@ -126,11 +133,18 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 	}
 	defer resp.Body.Close()
 
-	// Relay status code and content-related headers from the publisher.
+	// Relay status code and content-related headers from the publisher. Go's
+	// transparent gzip decoding already removes Content-Length/Content-Encoding
+	// from resp.Header when it decompresses, so a stale length is never relayed.
 	for _, h := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"} {
 		if v := resp.Header.Get(h); v != "" {
 			w.Header().Set(h, v)
 		}
+	}
+	// Some publishers omit Content-Type; fall back to the episode's declared type
+	// (or one derived from its suffix) so clients can pick the right extractor.
+	if w.Header().Get("Content-Type") == "" && episode.ContentType != "" {
+		w.Header().Set("Content-Type", episode.ContentType)
 	}
 	if asDownload {
 		name := downloadFilename(episode)

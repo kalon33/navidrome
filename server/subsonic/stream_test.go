@@ -68,13 +68,16 @@ var _ = Describe("Stream (podcast episodes)", func() {
 	var enclosureURL string
 	var requestedPath string
 	var rangeHeader string
+	var acceptEncoding string
 
 	BeforeEach(func() {
 		requestedPath = ""
 		rangeHeader = ""
+		acceptEncoding = ""
 		enclosure = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestedPath = r.URL.Path
 			rangeHeader = r.Header.Get("Range")
+			acceptEncoding = r.Header.Get("Accept-Encoding")
 			w.Header().Set("Content-Type", "audio/mpeg")
 			w.Header().Set("Accept-Ranges", "bytes")
 			if rangeHeader != "" {
@@ -169,6 +172,18 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			Expect(w.Code).To(Equal(http.StatusPartialContent))
 			Expect(w.Header().Get("Content-Range")).To(Equal("bytes 0-1023/2048"))
 			Expect(rangeHeader).To(Equal("bytes=0-1023"))
+		})
+
+		It("requests identity encoding so Content-Length stays usable for seeking", func() {
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(acceptEncoding).To(Equal("identity"))
+			// The relayed Content-Length must match the bytes actually written so
+			// clients can compute duration/seek; gzip auto-decoding would drop it.
+			Expect(w.Header().Get("Content-Length")).To(Equal("2048"))
+			Expect(w.Body.Len()).To(Equal(2048))
 		})
 
 		It("responds to HEAD requests without a body", func() {
