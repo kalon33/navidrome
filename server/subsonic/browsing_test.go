@@ -179,6 +179,17 @@ var _ = Describe("Browsing", func() {
 		})
 	})
 
+	Describe("GetSimilarSongs", func() {
+		It("returns an empty result for podcast episode ids instead of an error", func() {
+			api = &Router{ds: ds}
+			r := httptest.NewRequest("GET", "/rest/getSimilarSongs?id=ep-1&count=10", nil)
+			resp, err := api.GetSimilarSongs(r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.SimilarSongs).ToNot(BeNil())
+			Expect(resp.SimilarSongs.Song).To(BeEmpty())
+		})
+	})
+
 	Describe("GetArtistInfo", func() {
 		It("emits image URLs when the artist artwork is unresolved", func() {
 			api.provider = &fakeInfoProvider{artist: &model.Artist{ID: "ar-1"}}

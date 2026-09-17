@@ -180,4 +180,52 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+
+	Describe("Download (podcast episodes)", func() {
+		BeforeEach(func() {
+			engine := &fakeStreamPodcastEngine{
+				hasProvider: true,
+				episode: &capabilities.PodcastEpisode{
+					ID:        "ep-1",
+					Title:     "Episode One",
+					StreamURL: enclosureURL,
+					Suffix:    "mp3",
+					Duration:  120,
+				},
+			}
+			api = &Router{podcast: engine}
+		})
+
+		It("proxies the enclosure with an attachment disposition for download", func() {
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "download", "id", "ep-1")
+
+			_, err := api.Download(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Code).To(Equal(http.StatusOK))
+			Expect(w.Header().Get("Content-Type")).To(Equal("audio/mpeg"))
+			Expect(w.Header().Get("Content-Disposition")).To(Equal(`attachment; filename="Episode One.mp3"`))
+			Expect(w.Body.Len()).To(Equal(2048))
+		})
+
+		It("falls back to the id and no suffix when the episode has no title/suffix", func() {
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-2", StreamURL: enclosureURL}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "download", "id", "ep-2")
+
+			_, err := api.Download(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Header().Get("Content-Disposition")).To(Equal(`attachment; filename="ep-2"`))
+		})
+
+		It("returns an error when no provider is configured", func() {
+			api.podcast = &fakeStreamPodcastEngine{hasProvider: false}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "download", "id", "ep-1")
+
+			_, err := api.Download(w, r)
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })

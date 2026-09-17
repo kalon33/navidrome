@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/navidrome/navidrome/conf"
@@ -356,6 +357,14 @@ func (api *Router) GetSimilarSongs(r *http.Request) (*responses.Subsonic, error)
 		return nil, err
 	}
 	count := p.IntOr("count", 50)
+
+	// Podcast episodes are not library tracks and have no similar songs; return
+	// an empty result instead of a data-not-found error.
+	if strings.HasPrefix(id, "ep-") {
+		response := newResponse()
+		response.SimilarSongs = &responses.SimilarSongs{}
+		return response, nil
+	}
 
 	songs, err := api.provider.SimilarSongs(ctx, id, count)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/navidrome/navidrome/log"
 	"github.com/navidrome/navidrome/model"
 	"github.com/navidrome/navidrome/model/request"
+	"github.com/navidrome/navidrome/plugins/capabilities"
 	"github.com/navidrome/navidrome/server/subsonic/responses"
 	"github.com/navidrome/navidrome/utils/httpclient"
 	"github.com/navidrome/navidrome/utils/req"
@@ -76,6 +77,21 @@ func isPodcastEpisodeID(id string) bool {
 // seekable, and the response's content type / length / range headers are
 // passed through unchanged.
 func (api *Router) streamPodcastEpisode(w http.ResponseWriter, r *http.Request, id string) (*responses.Subsonic, error) {
+	return api.proxyPodcastEpisode(w, r, id, false)
+}
+
+// downloadPodcastEpisode proxies the podcast episode's enclosure URL with an
+// attachment disposition so Subsonic clients can save it via /rest/download.
+func (api *Router) downloadPodcastEpisode(w http.ResponseWriter, r *http.Request, id string) (*responses.Subsonic, error) {
+	return api.proxyPodcastEpisode(w, r, id, true)
+}
+
+// proxyPodcastEpisode fetches the podcast episode identified by id from the
+// plugin and streams its enclosure URL back to the client. When asDownload is
+// set, a Content-Disposition: attachment header forces the client to save the
+// file rather than play it. Range/Accept headers are forwarded so streamed
+// episodes stay seekable, and content headers from the publisher are relayed.
+func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, id string, asDownload bool) (*responses.Subsonic, error) {
 	ctx := r.Context()
 	if api.podcast == nil || !api.podcast.HasProvider() {
 		return nil, errNoPodcastProvider()
@@ -111,10 +127,14 @@ func (api *Router) streamPodcastEpisode(w http.ResponseWriter, r *http.Request, 
 	defer resp.Body.Close()
 
 	// Relay status code and content-related headers from the publisher.
-	for _, h := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "Content-Disposition"} {
+	for _, h := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"} {
 		if v := resp.Header.Get(h); v != "" {
 			w.Header().Set(h, v)
 		}
+	}
+	if asDownload {
+		name := downloadFilename(episode)
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", name))
 	}
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if episode.Duration > 0 {
@@ -131,6 +151,20 @@ func (api *Router) streamPodcastEpisode(w http.ResponseWriter, r *http.Request, 
 	return nil, nil
 }
 
+// downloadFilename builds a safe attachment filename for a podcast episode,
+// using its suffix when known and falling back to the episode id.
+func downloadFilename(ep *capabilities.PodcastEpisode) string {
+	base := ep.Title
+	if base == "" {
+		base = ep.ID
+	}
+	base = strings.ReplaceAll(base, "/", "_")
+	if ep.Suffix != "" {
+		return base + "." + ep.Suffix
+	}
+	return base
+}
+
 func (api *Router) Download(w http.ResponseWriter, r *http.Request) (*responses.Subsonic, error) {
 	ctx := r.Context()
 	username, _ := request.UsernameFrom(ctx)
@@ -143,6 +177,12 @@ func (api *Router) Download(w http.ResponseWriter, r *http.Request) (*responses.
 	if !conf.Server.EnableDownloads {
 		log.Warn(ctx, "Downloads are disabled", "user", username, "id", id)
 		return nil, newError(responses.ErrorAuthorizationFail, "downloads are disabled")
+	}
+
+	// Podcast episodes are not library media files; proxy their enclosure so
+	// clients can download episodes via the standard download endpoint.
+	if isPodcastEpisodeID(id) {
+		return api.downloadPodcastEpisode(w, r, id)
 	}
 
 	entity, err := model.GetEntityByID(ctx, api.ds, id)
