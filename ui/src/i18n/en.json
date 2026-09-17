@@ -445,7 +445,7 @@
       "status": {
         "new": "New",
         "downloading": "Downloading",
-        "downloaded": "Available",
+        "downloaded": "Downloaded",
         "completed": "Available",
         "error": "Error",
         "skipped": "Skipped",
@@ -453,7 +453,7 @@
       },
       "filter": {
         "all": "All episodes",
-        "downloaded": "Available only"
+        "downloaded": "Downloaded only"
       }
     }
   },

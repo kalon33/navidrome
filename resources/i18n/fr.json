@@ -432,8 +432,15 @@
       "status": {
         "downloaded": "Téléchargé",
         "downloading": "Téléchargement en cours",
-        "skipped": "Nouveau",
-        "error": "Erreur"
+        "skipped": "Ignoré",
+        "error": "Erreur",
+        "new": "Nouveau",
+        "completed": "Disponible",
+        "deleted": "Supprimé"
+      },
+      "filter": {
+        "all": "Tous les épisodes",
+        "downloaded": "Téléchargés uniquement"
       }
     }
   },
