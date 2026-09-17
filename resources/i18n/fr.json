@@ -38,7 +38,9 @@
         "missing": "Manquant",
         "libraryName": "Bibliothèque",
         "composer": "Compositeur·e",
-        "disc": "Disque %{discNumber}"
+        "disc": "Disque %{discNumber}",
+        "albumGain": "Gain de l’album",
+        "trackGain": "Gain de la piste"
       },
       "actions": {
         "addToQueue": "Ajouter à la file",
@@ -91,7 +93,8 @@
         "addToPlaylist": "Ajouter à la playlist",
         "download": "Télécharger",
         "info": "Plus d'informations",
-        "share": "Partager"
+        "share": "Partager",
+        "refresh": "Actualiser les métadonnées"
       },
       "lists": {
         "all": "Tous",
@@ -153,11 +156,13 @@
         "newPassword": "Nouveau mot de passe",
         "token": "Token",
         "lastAccessAt": "Dernier accès",
-        "libraries": "Bibliothèques"
+        "libraries": "Bibliothèques",
+        "scrobbleFilter": "Filtre de scrobble"
       },
       "helperTexts": {
         "name": "Les changements liés à votre nom ne seront reflétés qu'à la prochaine connexion",
-        "libraries": "Sélectionner une bibliothèque pour cet utilisateur ou laisser vide pour utiliser la bibliothèque par défaut"
+        "libraries": "Sélectionner une bibliothèque pour cet utilisateur ou laisser vide pour utiliser la bibliothèque par défaut",
+        "scrobbleFilter": "Les morceaux correspondant à ces règles de liste de lecture intelligente ne sont pas envoyés à Last.fm, ListenBrainz ou aux plugins de scrobble. Utilise la même syntaxe et le même comportement que les listes de lecture intelligentes. Exemple : {\"all\":[{\"lt\":{\"rating\":4}}]}. Laisser vide pour tout scrobler. Les compteurs de lecture locaux ne sont pas affectés."
       },
       "notifications": {
         "created": "Utilisateur créé",
@@ -171,7 +176,8 @@
         "adminAutoLibraries": "Les utilisateurs admin ont automatiquement accès à l'ensemble des bibliothèques"
       },
       "validation": {
-        "librariesRequired": "Au moins une bibliothèque doit être sélectionnée pour les utilisateurs non administrateurs"
+        "librariesRequired": "Au moins une bibliothèque doit être sélectionnée pour les utilisateurs non administrateurs",
+        "invalidScrobbleFilter": "Doit être des règles de liste de lecture intelligentes valides. Limit, offset et délai de rafraîchissement ne sont pas pris en charge."
       }
     },
     "player": {
@@ -194,6 +200,9 @@
         "targetFormat": "Format",
         "defaultBitRate": "Bitrate par défaut",
         "command": "Commande"
+      },
+      "choices": {
+        "noDefaultBitRate": "Aucun"
       }
     },
     "playlist": {
@@ -208,7 +217,8 @@
         "songCount": "Morceaux",
         "comment": "Commentaire",
         "sync": "Import automatique",
-        "path": "Importer depuis"
+        "path": "Importer depuis",
+        "starred": "Favori"
       },
       "actions": {
         "selectPlaylist": "Sélectionner une playlist :",
@@ -401,7 +411,8 @@
         "requiredHosts": "Hôtes requis",
         "configValidationError": "Erreur lors de la validation de la configuration",
         "schemaRenderError": "Impossible de processer la configuration. Le schéma de l'extension n'est peut-être pas valide.",
-        "allowWriteAccessHelp": "Lorsque cette option est activée, le plugin peut modifier les fichiers dans les répertoires de la bibliothèque. Par défaut, les plugins ont un accès en lecture seule."
+        "allowWriteAccessHelp": "Lorsque cette option est activée, le plugin peut modifier les fichiers dans les répertoires de la bibliothèque. Par défaut, les plugins ont un accès en lecture seule.",
+        "idHelp": "L’identifiant du plugin, dérivé de son nom de fichier. Utilisez-le pour référencer ce plugin dans les options de configuration, telles que les Agents."
       },
       "placeholders": {
         "configKey": "clef",
@@ -642,7 +653,8 @@
     "podcastDownloadStarted": "Téléchargement démarré",
     "podcastDownloadError": "Erreur lors du téléchargement de l'épisode",
     "podcastEpisodeDeleted": "Épisode supprimé",
-    "queueAdded": "Ajouté à la file"
+    "queueAdded": "Ajouté à la file",
+    "metadataRefreshStarted": "Actualisation des métadonnées en arrière-plan"
   },
   "menu": {
     "library": "Bibliothèque",
@@ -677,7 +689,8 @@
       "multipleLibraries": "%{selected} bibliothèque(s) sélectionnée(s) sur %{total}",
       "selectLibraries": "Sélectionner les bibliothèques",
       "none": "Aucune"
-    }
+    },
+    "onlyFavourites": "Afficher uniquement les favoris"
   },
   "player": {
     "playListsText": "File de lecture",
