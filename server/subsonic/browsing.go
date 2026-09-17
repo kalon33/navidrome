@@ -168,6 +168,12 @@ func (api *Router) GetArtist(r *http.Request) (*responses.Subsonic, error) {
 	id, _ := p.String("id")
 	ctx := r.Context()
 
+	// Podcast episodes have no artist parent; clients that resolve the (empty)
+	// parent id should get a clean not-found rather than a noisy error log.
+	if id == "" {
+		return nil, newError(responses.ErrorDataNotFound, "Artist not found")
+	}
+
 	artist, err := api.ds.Artist(ctx).Get(id)
 	if errors.Is(err, model.ErrNotFound) {
 		log.Error(ctx, "Requested ArtistID not found ", "id", id)
@@ -191,6 +197,12 @@ func (api *Router) GetAlbum(r *http.Request) (*responses.Subsonic, error) {
 	id, _ := p.String("id")
 
 	ctx := r.Context()
+
+	// Podcast episodes have no album parent; clients that resolve the (empty)
+	// parent id should get a clean not-found rather than a noisy error log.
+	if id == "" {
+		return nil, newError(responses.ErrorDataNotFound, "Album not found")
+	}
 
 	album, err := api.ds.Album(ctx).Get(id)
 	if errors.Is(err, model.ErrNotFound) {
@@ -247,6 +259,23 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	p := req.Params(r)
 	id, _ := p.String("id")
 	ctx := r.Context()
+
+	// Podcast episodes are not library media files; return their metadata as a
+	// playable podcast Child so external clients can resolve episodes via getSong.
+	if strings.HasPrefix(id, "ep-") {
+		if api.podcast == nil || !api.podcast.HasProvider() {
+			return nil, newError(responses.ErrorDataNotFound, "Song not found")
+		}
+		ep, err := api.podcast.GetEpisode(ctx, id)
+		if err != nil || ep == nil {
+			log.Error(ctx, "Requested podcast episode not found", "id", id, err)
+			return nil, newError(responses.ErrorDataNotFound, "Song not found")
+		}
+		child := childFromPodcastEpisode(*ep)
+		response := newResponse()
+		response.Song = &child
+		return response, nil
+	}
 
 	mf, err := api.ds.MediaFile(ctx).Get(id)
 	if errors.Is(err, model.ErrNotFound) {
