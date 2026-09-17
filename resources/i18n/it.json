@@ -437,7 +437,7 @@
             "status": {
                 "new": "Nuovo",
                 "downloading": "In download",
-                "downloaded": "Disponibile",
+                "downloaded": "Scaricato",
                 "completed": "Disponibile",
                 "error": "Errore",
                 "skipped": "Ignorato",
@@ -445,7 +445,7 @@
             },
             "filter": {
                 "all": "Tutti gli episodi",
-                "downloaded": "Solo disponibili"
+                "downloaded": "Solo scaricati"
             }
         }
     },

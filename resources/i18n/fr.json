@@ -430,7 +430,7 @@
         "download": "Télécharger"
       },
       "status": {
-        "downloaded": "Disponible",
+        "downloaded": "Téléchargé",
         "downloading": "Téléchargement en cours",
         "skipped": "Ignoré",
         "error": "Erreur",
@@ -440,7 +440,7 @@
       },
       "filter": {
         "all": "Tous les épisodes",
-        "downloaded": "Disponibles uniquement"
+        "downloaded": "Téléchargés uniquement"
       }
     }
   },
