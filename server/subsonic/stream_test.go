@@ -224,6 +224,22 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			_, err := api.Stream(w, r)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("returns an error instead of relaying a publisher error page", func() {
+			failedEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusForbidden)
+				_, _ = w.Write([]byte("<html>forbidden</html>"))
+			}))
+			DeferCleanup(failedEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: failedEnclosure.URL + "/ep.mp3"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("HTTP 403"))
+		})
 	})
 
 	Describe("Download (podcast episodes)", func() {

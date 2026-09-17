@@ -20,6 +20,14 @@ import (
 	"github.com/navidrome/navidrome/utils/req"
 )
 
+// podcastEnclosureUserAgent is sent when proxying a podcast enclosure. Podcast
+// hosting CDNs commonly block or throttle unknown user agents (returning an
+// HTML error page instead of the audio), which breaks playback in Subsonic
+// clients streaming through /rest/stream while the web UI (using the browser
+// user agent) keeps working. This generic, widely accepted user agent makes the
+// publishers serve the real audio bytes to the proxy.
+const podcastEnclosureUserAgent = "Mozilla/5.0 (compatible; Navidrome Podcast Proxy)"
+
 func (api *Router) Stream(w http.ResponseWriter, r *http.Request) (*responses.Subsonic, error) {
 	ctx := r.Context()
 	p := req.Params(r)
@@ -124,6 +132,14 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 	// serve the raw bytes with a usable Content-Length, and also keeps Range
 	// requests meaningful (auto-decoding a partial gzipped document fails).
 	proxyReq.Header.Set("Accept-Encoding", "identity")
+	// Podcast enclosures are served by hosting CDNs (e.g. Ausha, Radio France)
+	// that routinely block or throttle requests from unknown user agents, often
+	// returning an HTML error page with a 2xx/4xx status. ExoPlayer then tries to
+	// extract that error body as audio and fails silently, while the web UI works
+	// because the browser fetches the enclosure with its own user agent. Use a
+	// generic, widely accepted podcast user agent so publishers serve the real
+	// audio bytes to the proxy.
+	proxyReq.Header.Set("User-Agent", podcastEnclosureUserAgent)
 
 	client := httpclient.New(0)
 	resp, err := client.Do(proxyReq) //nolint:gosec // proxyReq targets the user-subscribed podcast enclosure
@@ -132,6 +148,13 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 		return nil, newError(responses.ErrorGeneric, "error streaming podcast episode")
 	}
 	defer resp.Body.Close()
+	// A non-2xx response from the publisher (forbidden, not found, ...) means no
+	// audio is available. Relaying it verbatim lets clients try to decode an HTML
+	// error page as audio and fail silently, so log it loudly instead.
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Warn(ctx, "Podcast enclosure returned an error status", "id", id, "url", episode.StreamURL, "status", resp.StatusCode)
+		return nil, newError(responses.ErrorDataNotFound, "podcast enclosure unavailable (HTTP %d)", resp.StatusCode)
+	}
 
 	// Relay status code and content-related headers from the publisher. Go's
 	// transparent gzip decoding already removes Content-Length/Content-Encoding
