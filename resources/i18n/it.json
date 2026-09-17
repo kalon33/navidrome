@@ -93,7 +93,8 @@
                 "shuffle": "Riproduci casualmente",
                 "addToPlaylist": "Aggiungi alla playlist",
                 "download": "Scarica",
-                "info": "Informazioni"
+                "info": "Informazioni",
+                "refresh": "Aggiorna metadati"
             },
             "lists": {
                 "all": "Tutti",
@@ -155,11 +156,13 @@
                 "currentPassword": "Password attuale",
                 "newPassword": "Nuova password",
                 "token": "Token",
-                "libraries": "Librerie"
+                "libraries": "Librerie",
+                "scrobbleFilter": "Filtro scrobble"
             },
             "helperTexts": {
                 "name": "Le modifiche al tuo nome verranno mostrate solo al prossimo accesso",
-                "libraries": "Seleziona librerie specifiche per questo utente, o lascia vuoto per usare le librerie predefinite"
+                "libraries": "Seleziona librerie specifiche per questo utente, o lascia vuoto per usare le librerie predefinite",
+                "scrobbleFilter": "I brani che corrispondono a queste regole di playlist intelligente non vengono inviati a Last.fm, ListenBrainz o ai plugin di scrobble. Usa la stessa sintassi e lo stesso comportamento delle playlist intelligenti. Esempio: {\"all\":[{\"lt\":{\"rating\":4}}]}. Lascia vuoto per scrobbare tutto. I conteggi di riproduzione locali non sono interessati."
             },
             "notifications": {
                 "created": "Utente creato",
@@ -167,7 +170,8 @@
                 "deleted": "Utente eliminato"
             },
             "validation": {
-                "librariesRequired": "Almeno una libreria deve essere selezionata per gli utenti non admin"
+                "librariesRequired": "Almeno una libreria deve essere selezionata per gli utenti non admin",
+                "invalidScrobbleFilter": "Deve contenere regole di playlist intelligente valide. Limit, offset e ritardo di aggiornamento non sono supportati."
             },
             "message": {
                 "listenBrainzToken": "Inserisci il tuo token utente ListenBrainz.",
@@ -196,6 +200,9 @@
                 "targetFormat": "Formato",
                 "defaultBitRate": "Bitrate predefinito",
                 "command": "Comando"
+            },
+            "choices": {
+                "noDefaultBitRate": "Nessuno"
             }
         },
         "playlist": {
@@ -406,7 +413,8 @@
                 "noLibraries": "Nessuna libreria selezionata",
                 "librariesRequired": "Questo plugin richiede accesso alle informazioni delle librerie. Seleziona a quali librerie il plugin può accedere, oppure abilita 'Consenti tutte le librerie'.",
                 "allowWriteAccessHelp": "Se abilitato, il plugin può modificare i file nelle directory della libreria. Per impostazione predefinita, i plugin hanno accesso in sola lettura.",
-                "requiredHosts": "Host richiesti"
+                "requiredHosts": "Host richiesti",
+                "idHelp": "L'ID del plugin, derivato dal nome del file. Usalo per fare riferimento a questo plugin nelle opzioni di configurazione, come ad esempio gli Agent."
             },
             "placeholders": {
                 "configKey": "chiave",
@@ -646,7 +654,9 @@
         "podcastDeleteError": "Errore nell'eliminazione del podcast",
         "podcastDownloadStarted": "Download avviato",
         "podcastDownloadError": "Errore nel download dell'episodio",
-        "podcastEpisodeDeleted": "Episodio eliminato"
+        "podcastEpisodeDeleted": "Episodio eliminato",
+        "metadataRefreshStarted": "Aggiornamento dei metadati in background",
+        "queueAdded": "Aggiunto alla coda"
     },
     "menu": {
         "library": "Libreria",
