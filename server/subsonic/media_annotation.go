@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/navidrome/navidrome/core/scrobbler"
@@ -194,6 +195,11 @@ func (api *Router) scrobblerSubmit(ctx context.Context, ids []string, times []ti
 	var submissions []scrobbler.Submission
 	log.Debug(ctx, "Scrobbling tracks", "ids", ids, "times", times)
 	for i, id := range ids {
+		// Podcast episodes are not library media files and carry no
+		// scrobble metadata; skip them instead of failing the whole batch.
+		if strings.HasPrefix(id, "ep-") {
+			continue
+		}
 		var t time.Time
 		if len(times) > 0 {
 			t = times[i]
@@ -207,6 +213,11 @@ func (api *Router) scrobblerSubmit(ctx context.Context, ids []string, times []ti
 }
 
 func (api *Router) scrobblerNowPlaying(ctx context.Context, trackId string, position int) error {
+	// Podcast episodes are not library media files; they have no Now Playing
+	// metadata to report, so skip them silently.
+	if strings.HasPrefix(trackId, "ep-") {
+		return nil
+	}
 	mf, err := api.ds.MediaFile(ctx).Get(trackId)
 	if err != nil {
 		return err
