@@ -2,6 +2,7 @@ package subsonic
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -99,6 +100,24 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			Expect(isPodcastEpisodeID("mf-abc")).To(BeFalse())
 			Expect(isPodcastEpisodeID("al-abc")).To(BeFalse())
 			Expect(isPodcastEpisodeID("plainid")).To(BeFalse())
+		})
+	})
+
+	Describe("isClientDisconnect", func() {
+		It("detects broken pipe errors", func() {
+			Expect(isClientDisconnect(errors.New("write tcp ...: write: broken pipe"))).To(BeTrue())
+		})
+
+		It("detects connection reset errors", func() {
+			Expect(isClientDisconnect(errors.New("read tcp ...: read: connection reset by peer"))).To(BeTrue())
+		})
+
+		It("detects context cancellation", func() {
+			Expect(isClientDisconnect(context.Canceled)).To(BeTrue())
+		})
+
+		It("does not match unrelated errors", func() {
+			Expect(isClientDisconnect(errors.New("some other failure"))).To(BeFalse())
 		})
 	})
 

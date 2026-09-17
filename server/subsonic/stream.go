@@ -146,9 +146,30 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 		return nil, nil
 	}
 	if _, err := io.Copy(w, resp.Body); err != nil {
-		log.Warn(ctx, "Error proxying podcast episode", "id", id, err)
+		// A broken pipe / connection reset just means the client went away
+		// (track change, seek, stop): it is expected, not a server fault.
+		if isClientDisconnect(err) {
+			log.Debug(ctx, "Podcast episode proxy: client disconnected", "id", id, err)
+		} else {
+			log.Warn(ctx, "Error proxying podcast episode", "id", id, err)
+		}
 	}
 	return nil, nil
+}
+
+// isClientDisconnect reports whether err is a client-side network error (the
+// client closed the connection while we were still writing): a broken pipe,
+// a connection reset, or a canceled request context. These are expected during
+// normal playback (track change, seek, stop) and should not be logged as
+// warnings.
+func isClientDisconnect(err error) bool {
+	if errors.Is(err, context.Canceled) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "connection reset by peer") ||
+		strings.Contains(msg, "EOF")
 }
 
 // downloadFilename builds a safe attachment filename for a podcast episode,
