@@ -412,6 +412,41 @@
                 "configKey": "chiave",
                 "configValue": "valore"
             }
+        },
+        "podcast": {
+            "name": "Podcast |||| Podcast",
+            "empty": "Nessun podcast sottoscritto. Fai clic sul pulsante aggiungi per iscriverti a un feed RSS.",
+            "noEpisodes": "Nessun episodio trovato per questo canale.",
+            "notFound": "Canale podcast non trovato.",
+            "fields": {
+                "feedUrl": "URL del feed RSS",
+                "title": "Titolo",
+                "description": "Descrizione",
+                "url": "URL del feed",
+                "status": "Stato",
+                "publishDate": "Pubblicato",
+                "duration": "Durata"
+            },
+            "actions": {
+                "add": "Aggiungi podcast",
+                "play": "Riproduci",
+                "playAll": "Riproduci tutti",
+                "addToQueue": "Aggiungi alla coda",
+                "download": "Scarica"
+            },
+            "status": {
+                "new": "Nuovo",
+                "downloading": "In download",
+                "downloaded": "Disponibile",
+                "completed": "Disponibile",
+                "error": "Errore",
+                "skipped": "Ignorato",
+                "deleted": "Eliminato"
+            },
+            "filter": {
+                "all": "Tutti gli episodi",
+                "downloaded": "Solo disponibili"
+            }
         }
     },
     "ra": {
@@ -602,7 +637,16 @@
         "shareSuccess": "URL copiato negli appunti: %{url}",
         "shareFailure": "Errore durante la copia dell'URL %{url} negli appunti",
         "downloadDialogTitle": "Scarica %{resource} '%{name}' (%{size})",
-        "downloadOriginalFormat": "Scarica nel formato originale"
+        "downloadOriginalFormat": "Scarica nel formato originale",
+        "podcastLoadError": "Errore nel caricamento dei podcast",
+        "podcastRefreshError": "Errore nell'aggiornamento dei podcast",
+        "podcastChannelAdded": "Canale podcast aggiunto",
+        "podcastAddError": "Errore nell'aggiunta del canale podcast",
+        "podcastChannelDeleted": "Canale podcast eliminato",
+        "podcastDeleteError": "Errore nell'eliminazione del podcast",
+        "podcastDownloadStarted": "Download avviato",
+        "podcastDownloadError": "Errore nel download dell'episodio",
+        "podcastEpisodeDeleted": "Episodio eliminato"
     },
     "menu": {
         "library": "Libreria",
