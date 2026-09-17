@@ -197,21 +197,7 @@ func toPodcastChannel(ch capabilities.PodcastChannel) responses.PodcastChannel {
 
 func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 	resp := responses.PodcastEpisode{
-		Child: responses.Child{
-			Id:          ep.ID,
-			Title:       ep.Title,
-			IsDir:       false,
-			Year:        ep.Year,
-			Genre:       ep.Genre,
-			CoverArt:    episodeCoverArt(ep),
-			Size:        ep.Size,
-			ContentType: ep.ContentType,
-			Suffix:      ep.Suffix,
-			Duration:    ep.Duration,
-			BitRate:     ep.BitRate,
-			Path:        ep.Path,
-			Type:        "podcast",
-		},
+		Child:       childFromPodcastEpisode(ep),
 		StreamId:    ep.StreamID,
 		StreamUrl:   ep.StreamURL,
 		ChannelId:   ep.ChannelID,
@@ -220,6 +206,27 @@ func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 		PublishDate: ep.PublishDate,
 	}
 	return resp
+}
+
+// childFromPodcastEpisode builds a Subsonic Child from a podcast episode, used both
+// by getPodcasts/getNewestPodcasts and by getSong so external clients that fetch
+// episode metadata via /rest/getSong receive a playable podcast entry.
+func childFromPodcastEpisode(ep capabilities.PodcastEpisode) responses.Child {
+	return responses.Child{
+		Id:          ep.ID,
+		Title:       ep.Title,
+		IsDir:       false,
+		Year:        ep.Year,
+		Genre:       ep.Genre,
+		CoverArt:    episodeCoverArt(ep),
+		Size:        ep.Size,
+		ContentType: ep.ContentType,
+		Suffix:      ep.Suffix,
+		Duration:    ep.Duration,
+		BitRate:     ep.BitRate,
+		Path:        ep.Path,
+		Type:        "podcast",
+	}
 }
 
 func toPodcastEpisodePointer(ep *capabilities.PodcastEpisode) *responses.PodcastEpisode {
