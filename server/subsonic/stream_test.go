@@ -148,6 +148,17 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			Expect(requestedPath).To(Equal("/episode.mp3"))
 		})
 
+		It("strips a transcode suffix before resolving the episode", func() {
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1-raw.flc")
+
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Code).To(Equal(http.StatusOK))
+			Expect(engine.lastID).To(Equal("ep-1"))
+		})
+
 		It("forwards the Range header to the publisher", func() {
 			w := httptest.NewRecorder()
 			r := newStreamRequest("GET", "stream", "id", "ep-1")

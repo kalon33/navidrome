@@ -32,7 +32,7 @@ func (api *Router) Stream(w http.ResponseWriter, r *http.Request) (*responses.Su
 	// Their IDs are prefixed "ep-" and stream directly from the publisher's
 	// enclosure URL, so they are proxied instead of going through the streamer.
 	if isPodcastEpisodeID(id) {
-		return api.streamPodcastEpisode(w, r, id)
+		return api.streamPodcastEpisode(w, r, stripTranscodeSuffix(id))
 	}
 
 	maxBitRate := p.IntOr("maxBitRate", 0)
@@ -203,7 +203,7 @@ func (api *Router) Download(w http.ResponseWriter, r *http.Request) (*responses.
 	// Podcast episodes are not library media files; proxy their enclosure so
 	// clients can download episodes via the standard download endpoint.
 	if isPodcastEpisodeID(id) {
-		return api.downloadPodcastEpisode(w, r, id)
+		return api.downloadPodcastEpisode(w, r, stripTranscodeSuffix(id))
 	}
 
 	entity, err := model.GetEntityByID(ctx, api.ds, id)
