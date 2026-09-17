@@ -239,6 +239,26 @@ var _ = Describe("Browsing", func() {
 		})
 	})
 
+	Describe("stripTranscodeSuffix", func() {
+		It("strips a -<format>.<ext> suffix", func() {
+			Expect(stripTranscodeSuffix("9hpV710cCTSLMF7H0XpYAo-raw.flc")).To(Equal("9hpV710cCTSLMF7H0XpYAo"))
+			Expect(stripTranscodeSuffix("abc123-mp3.mp3")).To(Equal("abc123"))
+		})
+
+		It("leaves a bare id unchanged", func() {
+			Expect(stripTranscodeSuffix("9hpV710cCTSLMF7H0XpYAo")).To(Equal("9hpV710cCTSLMF7H0XpYAo"))
+		})
+
+		It("leaves an id with a dash but no format.ext suffix unchanged", func() {
+			Expect(stripTranscodeSuffix("ep-1")).To(Equal("ep-1"))
+			Expect(stripTranscodeSuffix("some-id")).To(Equal("some-id"))
+		})
+
+		It("does not strip a suffix with no extension", func() {
+			Expect(stripTranscodeSuffix("id-raw")).To(Equal("id-raw"))
+		})
+	})
+
 	Describe("GetArtistInfo", func() {
 		It("emits image URLs when the artist artwork is unresolved", func() {
 			api.provider = &fakeInfoProvider{artist: &model.Artist{ID: "ar-1"}}

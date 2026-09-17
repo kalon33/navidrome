@@ -277,7 +277,7 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 		return response, nil
 	}
 
-	mf, err := api.ds.MediaFile(ctx).Get(id)
+	mf, err := api.ds.MediaFile(ctx).Get(stripTranscodeSuffix(id))
 	if errors.Is(err, model.ErrNotFound) {
 		log.Error(r, "Requested MediaFileID not found ", "id", id)
 		return nil, newError(responses.ErrorDataNotFound, "Song not found")
@@ -290,6 +290,24 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	response := newResponse()
 	response.Song = new(childFromMediaFile(ctx, *mf))
 	return response, nil
+}
+
+// stripTranscodeSuffix removes a trailing "-<format>.<ext>" suffix that some
+// Subsonic clients (e.g. Tempus) append to a media id when they request a
+// transcoded stream. The library lookup needs the bare media id, so e.g.
+// "<id>-raw.flc" is reduced to "<id>". Ids without such a suffix are returned
+// unchanged.
+func stripTranscodeSuffix(id string) string {
+	dash := strings.LastIndex(id, "-")
+	if dash < 0 {
+		return id
+	}
+	suffix := id[dash+1:]
+	dot := strings.Index(suffix, ".")
+	if dot <= 0 || dot == len(suffix)-1 {
+		return id
+	}
+	return id[:dash]
 }
 
 func (api *Router) GetGenres(r *http.Request) (*responses.Subsonic, error) {
