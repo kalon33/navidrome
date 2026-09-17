@@ -1,11 +1,14 @@
 package subsonic
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/navidrome/navidrome/plugins/capabilities"
@@ -239,6 +242,37 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			_, err := api.Stream(w, r)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("HTTP 403"))
+		})
+
+		It("decompresses a gzipped enclosure and drops the stale Content-Length", func() {
+			audio := bytes.Repeat([]byte("audio"), 500) // 2500 bytes
+			var gzBuf bytes.Buffer
+			gz := gzip.NewWriter(&gzBuf)
+			_, _ = gz.Write(audio)
+			_ = gz.Close()
+			gzipped := gzBuf.Bytes()
+			gzipEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "audio/mpeg")
+				w.Header().Set("Content-Encoding", "gzip")
+				w.Header().Set("Content-Length", strconv.Itoa(len(gzipped)))
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(gzipped)
+			}))
+			DeferCleanup(gzipEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: gzipEnclosure.URL + "/e.mp3", ContentType: "audio/mpeg"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Code).To(Equal(http.StatusOK))
+			// The Content-Length must NOT be relayed: it described the gzipped size.
+			Expect(w.Header().Get("Content-Length")).To(BeEmpty())
+			Expect(w.Header().Get("Content-Encoding")).To(BeEmpty())
+			// The body must be the decompressed audio, not the gzipped bytes.
+			Expect(w.Body.Len()).To(Equal(len(audio)))
+			Expect(w.Body.Bytes()).To(Equal(audio))
 		})
 	})
 

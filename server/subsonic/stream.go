@@ -1,6 +1,7 @@
 package subsonic
 
 import (
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -110,8 +111,10 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 		return nil, newError(responses.ErrorDataNotFound, "podcast episode not found: %s", id)
 	}
 	if episode == nil || episode.StreamURL == "" {
+		log.Warn(ctx, "Podcast episode not streamable (nil or no stream URL)", "id", id)
 		return nil, newError(responses.ErrorDataNotFound, "podcast episode not streamable: %s", id)
 	}
+	log.Debug(ctx, "Proxying podcast episode", "id", id, "url", episode.StreamURL, "contentType", episode.ContentType, "duration", episode.Duration, "size", episode.Size)
 
 	proxyReq, err := http.NewRequestWithContext(ctx, http.MethodGet, episode.StreamURL, nil) //nolint:gosec // StreamURL is a publisher enclosure from a podcast feed the user subscribed to
 	if err != nil {
@@ -148,6 +151,7 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 		return nil, newError(responses.ErrorGeneric, "error streaming podcast episode")
 	}
 	defer resp.Body.Close()
+	log.Debug(ctx, "Podcast enclosure response", "id", id, "status", resp.StatusCode, "contentType", resp.Header.Get("Content-Type"), "contentEncoding", resp.Header.Get("Content-Encoding"), "contentLength", resp.Header.Get("Content-Length"), "acceptRanges", resp.Header.Get("Accept-Ranges"), "contentRange", resp.Header.Get("Content-Range"))
 	// A non-2xx response from the publisher (forbidden, not found, ...) means no
 	// audio is available. Relaying it verbatim lets clients try to decode an HTML
 	// error page as audio and fail silently, so log it loudly instead.
@@ -155,11 +159,31 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 		log.Warn(ctx, "Podcast enclosure returned an error status", "id", id, "url", episode.StreamURL, "status", resp.StatusCode)
 		return nil, newError(responses.ErrorDataNotFound, "podcast enclosure unavailable (HTTP %d)", resp.StatusCode)
 	}
-
-	// Relay status code and content-related headers from the publisher. Go's
-	// transparent gzip decoding already removes Content-Length/Content-Encoding
-	// from resp.Header when it decompresses, so a stale length is never relayed.
-	for _, h := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges"} {
+	// We ask for Accept-Encoding: identity, but some CDNs gzip the response
+	// regardless. Go only transparently decompresses gzip it requested itself, so
+	// here resp.Body is the still-compressed bytes with a Content-Length matching
+	// the gzipped size. Relaying that verbatim would send compressed audio
+	// (without a Content-Encoding header) that ExoPlayer cannot decode, causing
+	// silent playback failures while the web UI (browser auto-decodes) works.
+	// Detect this case and decompress server-side.
+	body := resp.Body
+	if strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
+		gz, gzErr := gzip.NewReader(resp.Body)
+		if gzErr != nil {
+			log.Warn(ctx, "Could not open gzip reader for podcast enclosure", "id", id, "url", episode.StreamURL, gzErr)
+			return nil, newError(responses.ErrorGeneric, "error streaming podcast episode")
+		}
+		body = &gzipCloseReader{gz: gz, body: resp.Body}
+	}
+	defer body.Close()
+	// Relay status code and content-related headers from the publisher. The
+	// Content-Length is dropped when decompressing gzip, since it described the
+	// compressed size, not the audio size; a wrong length would break seeking.
+	relayHeaders := []string{"Content-Type", "Content-Range", "Accept-Ranges"}
+	if !strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
+		relayHeaders = append([]string{"Content-Length"}, relayHeaders...)
+	}
+	for _, h := range relayHeaders {
 		if v := resp.Header.Get(h); v != "" {
 			w.Header().Set(h, v)
 		}
@@ -182,7 +206,7 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 	if r.Method == http.MethodHead {
 		return nil, nil
 	}
-	if _, err := io.Copy(w, resp.Body); err != nil {
+	if _, err := io.Copy(w, body); err != nil {
 		// A broken pipe / connection reset just means the client went away
 		// (track change, seek, stop): it is expected, not a server fault.
 		if isClientDisconnect(err) {
@@ -207,6 +231,19 @@ func isClientDisconnect(err error) bool {
 	return strings.Contains(msg, "broken pipe") ||
 		strings.Contains(msg, "connection reset by peer") ||
 		strings.Contains(msg, "EOF")
+}
+
+// gzipCloseReader wraps a gzip.Reader so closing it also closes the underlying
+// response body, and so it satisfies io.ReadCloser for the proxy copy.
+type gzipCloseReader struct {
+	gz   *gzip.Reader
+	body io.Closer
+}
+
+func (g *gzipCloseReader) Read(p []byte) (int, error) { return g.gz.Read(p) }
+func (g *gzipCloseReader) Close() error {
+	_ = g.gz.Close()
+	return g.body.Close()
 }
 
 // downloadFilename builds a safe attachment filename for a podcast episode,
