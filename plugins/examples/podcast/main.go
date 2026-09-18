@@ -429,10 +429,18 @@ func defaultEpisodeStatus(enclosureURL string) podcast.PodcastStatus {
 // enclosure-based default (typically "completed") rather than stay stuck on
 // "skipped", which would hide episodes from Subsonic clients that only surface
 // "completed" episodes (e.g. Tempus).
+//
+// "error" is NOT preserved either: an episode can fall to "error" when a
+// DownloadEpisode verification HEAD request against the enclosure fails (for
+// example the publisher rejects the User-Agent, or returns a transient HTTP
+// error). Once stuck on "error" the episode stays hidden from clients that only
+// surface "completed" episodes, even though streaming the enclosure directly
+// works fine. Re-evaluating a refreshed episode against its enclosure restores
+// it to "completed" as soon as the feed still carries an enclosure URL, instead
+// of staying frozen on a stale verification failure.
 func preservedStatus(prev podcast.PodcastStatus) (podcast.PodcastStatus, bool) {
 	switch prev {
 	case podcast.PodcastStatusCompleted,
-		podcast.PodcastStatusError,
 		podcast.PodcastStatusDeleted:
 		return prev, true
 	}
@@ -524,9 +532,55 @@ func refreshCron() string {
 
 func (p *podcastPlugin) OnInit() error {
 	pdk.Log(pdk.LogInfo, "Podcast plugin initializing")
+	if err := migrateStaleErrorStatuses(); err != nil {
+		pdk.Log(pdk.LogWarn, fmt.Sprintf("error status migration failed: %v", err))
+	}
 	_, err := host.SchedulerScheduleRecurring(refreshCron(), "refresh-all", scheduleID)
 	if err != nil {
 		pdk.Log(pdk.LogWarn, fmt.Sprintf("failed to schedule refresh: %v", err))
+	}
+	return nil
+}
+
+// migrateStaleErrorStatuses repairs episodes stuck on "error" that still carry
+// a usable enclosure URL. Before "error" stopped being preserved across feed
+// refreshes, a failed DownloadEpisode verification (rejected User-Agent,
+// transient HTTP error) froze an episode on "error" indefinitely. Clients that
+// only surface "completed" episodes (e.g. Tempus) then hid the episode even
+// though streaming the enclosure directly worked. This runs once at init and
+// promotes any such episode back to "completed" without waiting for the next
+// scheduled feed refresh, so existing stored data is fixed on plugin restart.
+func migrateStaleErrorStatuses() error {
+	ids, err := listChannelIDs()
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		sc, exists, lErr := loadChannel(id)
+		if lErr != nil {
+			return lErr
+		}
+		if !exists {
+			continue
+		}
+		changed := false
+		for i := range sc.Episodes {
+			if sc.Episodes[i].Status != podcast.PodcastStatusError {
+				continue
+			}
+			if strings.TrimSpace(sc.Episodes[i].StreamURL) == "" {
+				continue
+			}
+			sc.Episodes[i].Status = podcast.PodcastStatusCompleted
+			sc.Episodes[i].ErrorMessage = ""
+			changed = true
+		}
+		if changed {
+			if sErr := saveChannel(sc); sErr != nil {
+				return sErr
+			}
+			pdk.Log(pdk.LogInfo, fmt.Sprintf("repaired stale error episodes in channel %s", id))
+		}
 	}
 	return nil
 }

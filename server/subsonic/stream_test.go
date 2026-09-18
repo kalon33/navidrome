@@ -1,10 +1,15 @@
 package subsonic
 
 import (
+	"bytes"
+	"compress/gzip"
+	"compress/zlib"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/navidrome/navidrome/plugins/capabilities"
@@ -67,13 +72,16 @@ var _ = Describe("Stream (podcast episodes)", func() {
 	var enclosureURL string
 	var requestedPath string
 	var rangeHeader string
+	var acceptEncoding string
 
 	BeforeEach(func() {
 		requestedPath = ""
 		rangeHeader = ""
+		acceptEncoding = ""
 		enclosure = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestedPath = r.URL.Path
 			rangeHeader = r.Header.Get("Range")
+			acceptEncoding = r.Header.Get("Accept-Encoding")
 			w.Header().Set("Content-Type", "audio/mpeg")
 			w.Header().Set("Accept-Ranges", "bytes")
 			if rangeHeader != "" {
@@ -99,6 +107,24 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			Expect(isPodcastEpisodeID("mf-abc")).To(BeFalse())
 			Expect(isPodcastEpisodeID("al-abc")).To(BeFalse())
 			Expect(isPodcastEpisodeID("plainid")).To(BeFalse())
+		})
+	})
+
+	Describe("isClientDisconnect", func() {
+		It("detects broken pipe errors", func() {
+			Expect(isClientDisconnect(errors.New("write tcp ...: write: broken pipe"))).To(BeTrue())
+		})
+
+		It("detects connection reset errors", func() {
+			Expect(isClientDisconnect(errors.New("read tcp ...: read: connection reset by peer"))).To(BeTrue())
+		})
+
+		It("detects context cancellation", func() {
+			Expect(isClientDisconnect(context.Canceled)).To(BeTrue())
+		})
+
+		It("does not match unrelated errors", func() {
+			Expect(isClientDisconnect(errors.New("some other failure"))).To(BeFalse())
 		})
 	})
 
@@ -129,6 +155,17 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			Expect(requestedPath).To(Equal("/episode.mp3"))
 		})
 
+		It("strips a transcode suffix before resolving the episode", func() {
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1-raw.flc")
+
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Code).To(Equal(http.StatusOK))
+			Expect(engine.lastID).To(Equal("ep-1"))
+		})
+
 		It("forwards the Range header to the publisher", func() {
 			w := httptest.NewRecorder()
 			r := newStreamRequest("GET", "stream", "id", "ep-1")
@@ -139,6 +176,18 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			Expect(w.Code).To(Equal(http.StatusPartialContent))
 			Expect(w.Header().Get("Content-Range")).To(Equal("bytes 0-1023/2048"))
 			Expect(rangeHeader).To(Equal("bytes=0-1023"))
+		})
+
+		It("requests identity encoding so Content-Length stays usable for seeking", func() {
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(acceptEncoding).To(Equal("identity"))
+			// The relayed Content-Length must match the bytes actually written so
+			// clients can compute duration/seek; gzip auto-decoding would drop it.
+			Expect(w.Header().Get("Content-Length")).To(Equal("2048"))
+			Expect(w.Body.Len()).To(Equal(2048))
 		})
 
 		It("responds to HEAD requests without a body", func() {
@@ -178,6 +227,103 @@ var _ = Describe("Stream (podcast episodes)", func() {
 
 			_, err := api.Stream(w, r)
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("returns an error instead of relaying a publisher error page", func() {
+			failedEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusForbidden)
+				_, _ = w.Write([]byte("<html>forbidden</html>"))
+			}))
+			DeferCleanup(failedEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: failedEnclosure.URL + "/ep.mp3"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("HTTP 403"))
+		})
+
+		It("decompresses a gzipped enclosure and drops the stale Content-Length", func() {
+			audio := bytes.Repeat([]byte("audio"), 500) // 2500 bytes
+			var gzBuf bytes.Buffer
+			gz := gzip.NewWriter(&gzBuf)
+			_, _ = gz.Write(audio)
+			_ = gz.Close()
+			gzipped := gzBuf.Bytes()
+			gzipEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "audio/mpeg")
+				w.Header().Set("Content-Encoding", "gzip")
+				w.Header().Set("Content-Length", strconv.Itoa(len(gzipped)))
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(gzipped)
+			}))
+			DeferCleanup(gzipEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: gzipEnclosure.URL + "/e.mp3", ContentType: "audio/mpeg"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Code).To(Equal(http.StatusOK))
+			// The Content-Length must NOT be relayed: it described the gzipped size.
+			Expect(w.Header().Get("Content-Length")).To(BeEmpty())
+			Expect(w.Header().Get("Content-Encoding")).To(BeEmpty())
+			// The body must be the decompressed audio, not the gzipped bytes.
+			Expect(w.Body.Len()).To(Equal(len(audio)))
+			Expect(w.Body.Bytes()).To(Equal(audio))
+		})
+
+		It("decompresses a deflated enclosure and drops the stale Content-Length", func() {
+			audio := bytes.Repeat([]byte("audio"), 500) // 2500 bytes
+			var zlibBuf bytes.Buffer
+			zw := zlib.NewWriter(&zlibBuf)
+			_, _ = zw.Write(audio)
+			_ = zw.Close()
+			deflated := zlibBuf.Bytes()
+			deflateEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "audio/mpeg")
+				w.Header().Set("Content-Encoding", "deflate")
+				w.Header().Set("Content-Length", strconv.Itoa(len(deflated)))
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(deflated)
+			}))
+			DeferCleanup(deflateEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: deflateEnclosure.URL + "/e.mp3", ContentType: "audio/mpeg"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Code).To(Equal(http.StatusOK))
+			Expect(w.Header().Get("Content-Length")).To(BeEmpty())
+			Expect(w.Header().Get("Content-Encoding")).To(BeEmpty())
+			Expect(w.Body.Len()).To(Equal(len(audio)))
+			Expect(w.Body.Bytes()).To(Equal(audio))
+		})
+
+		It("refuses an unsupported Content-Encoding instead of relaying compressed bytes", func() {
+			compressed := []byte("fake-brotli-bytes")
+			brEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "audio/mpeg")
+				w.Header().Set("Content-Encoding", "br")
+				w.Header().Set("Content-Length", strconv.Itoa(len(compressed)))
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(compressed)
+			}))
+			DeferCleanup(brEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: brEnclosure.URL + "/e.mp3", ContentType: "audio/mpeg"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).To(HaveOccurred())
+			// The compressed body must never be relayed as audio.
+			Expect(w.Body.Len()).To(Equal(0))
 		})
 	})
 
