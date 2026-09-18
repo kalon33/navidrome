@@ -839,4 +839,12 @@ var _ = Describe("GetLyricsBySongId", func() {
 			},
 		})
 	})
+
+	It("returns an empty lyrics list for podcast episode ids", func() {
+		req := newGetRequest("id=ep-1")
+		response, err := router.GetLyricsBySongId(req)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(response.LyricsList).ToNot(BeNil())
+		Expect(response.LyricsList.StructuredLyrics).To(BeEmpty())
+	})
 })

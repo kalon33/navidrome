@@ -128,6 +128,14 @@ func (api *Router) GetLyricsBySongId(r *http.Request) (*responses.Subsonic, erro
 		return nil, err
 	}
 
+	// Podcast episodes have no lyrics; return an empty list so clients don't
+	// log a data-not-found error when they resolve an episode id.
+	if strings.HasPrefix(id, "ep-") {
+		response := newResponse()
+		response.LyricsList = &responses.LyricsList{}
+		return response, nil
+	}
+
 	mediaFile, err := api.ds.MediaFile(r.Context()).Get(id)
 	if err != nil {
 		return nil, err
