@@ -9,6 +9,7 @@ import (
 	"github.com/navidrome/navidrome/core/external"
 	"github.com/navidrome/navidrome/model"
 	"github.com/navidrome/navidrome/model/request"
+	"github.com/navidrome/navidrome/plugins/capabilities"
 	"github.com/navidrome/navidrome/tests"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -176,6 +177,85 @@ var _ = Describe("Browsing", func() {
 			Expect(resp.AlbumInfo.SmallImageUrl).To(BeEmpty())
 			Expect(resp.AlbumInfo.MediumImageUrl).To(BeEmpty())
 			Expect(resp.AlbumInfo.LargeImageUrl).To(BeEmpty())
+		})
+	})
+
+	Describe("GetSimilarSongs", func() {
+		It("returns an empty result for podcast episode ids instead of an error", func() {
+			api = &Router{ds: ds}
+			r := httptest.NewRequest("GET", "/rest/getSimilarSongs?id=ep-1&count=10", nil)
+			resp, err := api.GetSimilarSongs(r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.SimilarSongs).ToNot(BeNil())
+			Expect(resp.SimilarSongs.Song).To(BeEmpty())
+		})
+	})
+
+	Describe("GetSong", func() {
+		It("returns podcast episode metadata for ep- ids", func() {
+			api = &Router{ds: ds, podcast: &fakePodcastEngine{
+				hasProvider: true,
+				episode: &capabilities.PodcastEpisode{
+					ID:        "ep-1",
+					Title:     "Episode One",
+					ChannelID: "ch-1",
+					Status:    capabilities.PodcastStatusCompleted,
+					StreamURL: "https://example.com/ep1.mp3",
+					Suffix:    "mp3",
+					Duration:  120,
+				},
+			}}
+			r := httptest.NewRequest("GET", "/rest/getSong?id=ep-1", nil)
+			resp, err := api.GetSong(r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.Song).ToNot(BeNil())
+			Expect(resp.Song.Id).To(Equal("ep-1"))
+			Expect(resp.Song.Title).To(Equal("Episode One"))
+			Expect(resp.Song.Type).To(Equal("podcast"))
+			Expect(resp.Song.Duration).To(Equal(int32(120)))
+		})
+
+		It("returns not-found when no podcast provider is configured for ep- ids", func() {
+			api = &Router{ds: ds}
+			r := httptest.NewRequest("GET", "/rest/getSong?id=ep-missing", nil)
+			_, err := api.GetSong(r)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("GetAlbum / GetArtist with empty id", func() {
+		It("returns not-found for an empty album id without an error log", func() {
+			api = &Router{ds: ds}
+			r := httptest.NewRequest("GET", "/rest/getAlbum?id=", nil)
+			_, err := api.GetAlbum(r)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("returns not-found for an empty artist id without an error log", func() {
+			api = &Router{ds: ds}
+			r := httptest.NewRequest("GET", "/rest/getArtist?id=", nil)
+			_, err := api.GetArtist(r)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("stripTranscodeSuffix", func() {
+		It("strips a -<format>.<ext> suffix", func() {
+			Expect(stripTranscodeSuffix("9hpV710cCTSLMF7H0XpYAo-raw.flc")).To(Equal("9hpV710cCTSLMF7H0XpYAo"))
+			Expect(stripTranscodeSuffix("abc123-mp3.mp3")).To(Equal("abc123"))
+		})
+
+		It("leaves a bare id unchanged", func() {
+			Expect(stripTranscodeSuffix("9hpV710cCTSLMF7H0XpYAo")).To(Equal("9hpV710cCTSLMF7H0XpYAo"))
+		})
+
+		It("leaves an id with a dash but no format.ext suffix unchanged", func() {
+			Expect(stripTranscodeSuffix("ep-1")).To(Equal("ep-1"))
+			Expect(stripTranscodeSuffix("some-id")).To(Equal("some-id"))
+		})
+
+		It("does not strip a suffix with no extension", func() {
+			Expect(stripTranscodeSuffix("id-raw")).To(Equal("id-raw"))
 		})
 	})
 

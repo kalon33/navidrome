@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,7 +16,9 @@ import (
 	"github.com/navidrome/navidrome/conf/configtest"
 	"github.com/navidrome/navidrome/conf/mime"
 	"github.com/navidrome/navidrome/consts"
+	"github.com/navidrome/navidrome/core/podcast"
 	"github.com/navidrome/navidrome/model"
+	"github.com/navidrome/navidrome/plugins/capabilities"
 	"github.com/navidrome/navidrome/tests"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,7 +38,7 @@ var _ = Describe("serveIndex", func() {
 		r := httptest.NewRequest("GET", "/index.html", nil)
 		w := httptest.NewRecorder()
 
-		serveIndex(ds, fs, nil)(w, r)
+		serveIndex(ds, fs, nil, nil)(w, r)
 
 		Expect(w.Code).To(Equal(200))
 		config := extractAppConfig(w.Body.String())
@@ -47,7 +50,7 @@ var _ = Describe("serveIndex", func() {
 		r := httptest.NewRequest("GET", "/index.html", nil)
 		w := httptest.NewRecorder()
 
-		serveIndex(ds, fs, nil)(w, r)
+		serveIndex(ds, fs, nil, nil)(w, r)
 
 		config := extractAppConfig(w.Body.String())
 		Expect(config).To(HaveKeyWithValue("firstTime", true))
@@ -58,7 +61,7 @@ var _ = Describe("serveIndex", func() {
 		r := httptest.NewRequest("GET", "/index.html", nil)
 		w := httptest.NewRecorder()
 
-		serveIndex(ds, fs, nil)(w, r)
+		serveIndex(ds, fs, nil, nil)(w, r)
 
 		config := extractAppConfig(w.Body.String())
 		Expect(config).To(HaveKeyWithValue("firstTime", false))
@@ -70,7 +73,7 @@ var _ = Describe("serveIndex", func() {
 			r := httptest.NewRequest("GET", "/index.html", nil)
 			w := httptest.NewRecorder()
 
-			serveIndex(ds, fs, nil)(w, r)
+			serveIndex(ds, fs, nil, nil)(w, r)
 
 			config := extractAppConfig(w.Body.String())
 			Expect(config).To(HaveKeyWithValue(configKey, expectedValue))
@@ -114,7 +117,7 @@ var _ = Describe("serveIndex", func() {
 		r := httptest.NewRequest("GET", "/index.html", nil)
 		w := httptest.NewRecorder()
 
-		serveIndex(ds, fs, nil)(w, r)
+		serveIndex(ds, fs, nil, nil)(w, r)
 
 		config := extractAppConfig(w.Body.String())
 		Expect(config).To(HaveKey("welcomeMessage"))
@@ -126,7 +129,7 @@ var _ = Describe("serveIndex", func() {
 			r := httptest.NewRequest("GET", "/index.html", nil)
 			w := httptest.NewRecorder()
 
-			serveIndex(ds, fs, nil)(w, r)
+			serveIndex(ds, fs, nil, nil)(w, r)
 
 			config := extractAppConfig(w.Body.String())
 			Expect(config).To(HaveKeyWithValue(configKey, expectedValueFunc()))
@@ -150,7 +153,7 @@ var _ = Describe("serveIndex", func() {
 					r := httptest.NewRequest("GET", "/index.html", nil)
 					w := httptest.NewRecorder()
 
-					serveIndex(ds, fs, nil)(w, r)
+					serveIndex(ds, fs, nil, nil)(w, r)
 
 					config := extractAppConfig(w.Body.String())
 					Expect(config).To(HaveKeyWithValue("loginBackgroundURL", consts.DefaultUILoginBackgroundURL))
@@ -162,7 +165,7 @@ var _ = Describe("serveIndex", func() {
 					r := httptest.NewRequest("GET", "/index.html", nil)
 					w := httptest.NewRecorder()
 
-					serveIndex(ds, fs, nil)(w, r)
+					serveIndex(ds, fs, nil, nil)(w, r)
 
 					config := extractAppConfig(w.Body.String())
 					Expect(config).To(HaveKeyWithValue("loginBackgroundURL", consts.DefaultUILoginBackgroundURLOffline))
@@ -174,7 +177,7 @@ var _ = Describe("serveIndex", func() {
 					r := httptest.NewRequest("GET", "/index.html", nil)
 					w := httptest.NewRecorder()
 
-					serveIndex(ds, fs, nil)(w, r)
+					serveIndex(ds, fs, nil, nil)(w, r)
 
 					config := extractAppConfig(w.Body.String())
 					Expect(config).To(HaveKeyWithValue("loginBackgroundURL", "https://example.com/images/1.jpg"))
@@ -191,7 +194,7 @@ var _ = Describe("serveIndex", func() {
 					r := httptest.NewRequest("GET", "/index.html", nil)
 					w := httptest.NewRecorder()
 
-					serveIndex(ds, fs, nil)(w, r)
+					serveIndex(ds, fs, nil, nil)(w, r)
 
 					config := extractAppConfig(w.Body.String())
 					Expect(config).To(HaveKeyWithValue("loginBackgroundURL", "/music"+consts.DefaultUILoginBackgroundURL))
@@ -203,7 +206,7 @@ var _ = Describe("serveIndex", func() {
 					r := httptest.NewRequest("GET", "/index.html", nil)
 					w := httptest.NewRecorder()
 
-					serveIndex(ds, fs, nil)(w, r)
+					serveIndex(ds, fs, nil, nil)(w, r)
 
 					config := extractAppConfig(w.Body.String())
 					Expect(config).To(HaveKeyWithValue("loginBackgroundURL", consts.DefaultUILoginBackgroundURLOffline))
@@ -215,13 +218,54 @@ var _ = Describe("serveIndex", func() {
 					r := httptest.NewRequest("GET", "/index.html", nil)
 					w := httptest.NewRecorder()
 
-					serveIndex(ds, fs, nil)(w, r)
+					serveIndex(ds, fs, nil, nil)(w, r)
 
 					config := extractAppConfig(w.Body.String())
 					Expect(config).To(HaveKeyWithValue("loginBackgroundURL", "https://example.com/images/1.jpg"))
 				})
 			})
 		})
+	})
+})
+
+var _ = Describe("podcastEnabled appConfig", func() {
+	var ds model.DataStore
+	mockUser := &mockedUserRepo{}
+	fs := os.DirFS("tests/fixtures")
+
+	BeforeEach(func() {
+		ds = &tests.MockDataStore{MockedUser: mockUser}
+		DeferCleanup(configtest.SetupConfig())
+	})
+
+	It("is false when no podcast engine is provided", func() {
+		r := httptest.NewRequest("GET", "/index.html", nil)
+		w := httptest.NewRecorder()
+
+		serveIndex(ds, fs, nil, nil)(w, r)
+
+		config := extractAppConfig(w.Body.String())
+		Expect(config).To(HaveKeyWithValue("podcastEnabled", false))
+	})
+
+	It("is false when the engine reports no provider", func() {
+		r := httptest.NewRequest("GET", "/index.html", nil)
+		w := httptest.NewRecorder()
+
+		serveIndex(ds, fs, nil, &fakePodcastEngine{hasProvider: false})(w, r)
+
+		config := extractAppConfig(w.Body.String())
+		Expect(config).To(HaveKeyWithValue("podcastEnabled", false))
+	})
+
+	It("is true when the engine reports a provider", func() {
+		r := httptest.NewRequest("GET", "/index.html", nil)
+		w := httptest.NewRecorder()
+
+		serveIndex(ds, fs, nil, &fakePodcastEngine{hasProvider: true})(w, r)
+
+		config := extractAppConfig(w.Body.String())
+		Expect(config).To(HaveKeyWithValue("podcastEnabled", true))
 	})
 })
 
@@ -345,3 +389,34 @@ func (u *mockedUserRepo) CountAll(...model.QueryOptions) (int64, error) {
 	}
 	return 1, nil
 }
+
+type fakePodcastEngine struct {
+	hasProvider bool
+}
+
+var _ podcast.Engine = (*fakePodcastEngine)(nil)
+
+func (f *fakePodcastEngine) HasProvider() bool { return f.hasProvider }
+func (f *fakePodcastEngine) GetChannels(context.Context, bool) ([]capabilities.PodcastChannel, error) {
+	return nil, nil
+}
+func (f *fakePodcastEngine) GetChannel(context.Context, string, bool) (*capabilities.PodcastChannel, error) {
+	return nil, nil
+}
+func (f *fakePodcastEngine) GetEpisode(context.Context, string) (*capabilities.PodcastEpisode, error) {
+	return nil, nil
+}
+func (f *fakePodcastEngine) GetNewestEpisodes(context.Context, int) ([]capabilities.PodcastEpisode, error) {
+	return nil, nil
+}
+func (f *fakePodcastEngine) CreateChannel(context.Context, string) (*capabilities.PodcastChannel, error) {
+	return nil, nil
+}
+func (f *fakePodcastEngine) RefreshChannels(context.Context, []string) ([]string, error) {
+	return nil, nil
+}
+func (f *fakePodcastEngine) DownloadEpisode(context.Context, string) (*capabilities.PodcastEpisode, error) {
+	return nil, nil
+}
+func (f *fakePodcastEngine) DeleteChannel(context.Context, string) error { return nil }
+func (f *fakePodcastEngine) DeleteEpisode(context.Context, string) error { return nil }

@@ -23,7 +23,7 @@ var _ = Describe("GetLyricsBySongId", func() {
 		ds = &tests.MockDataStore{
 			MockedMediaFile: mockRepo,
 		}
-		router = New(ds, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, lyrics.NewLyrics(ds, nil), nil, nil)
+		router = New(ds, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, lyrics.NewLyrics(ds, nil), nil, nil, nil)
 		DeferCleanup(configtest.SetupConfig())
 		conf.Server.LyricsPriority = "embedded,.lrc"
 	})
@@ -838,5 +838,13 @@ var _ = Describe("GetLyricsBySongId", func() {
 				},
 			},
 		})
+	})
+
+	It("returns an empty lyrics list for podcast episode ids", func() {
+		req := newGetRequest("id=ep-1")
+		response, err := router.GetLyricsBySongId(req)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(response.LyricsList).ToNot(BeNil())
+		Expect(response.LyricsList.StructuredLyrics).To(BeEmpty())
 	})
 })

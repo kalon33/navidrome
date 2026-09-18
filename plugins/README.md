@@ -21,6 +21,7 @@ The plugin system is built on **[Extism](https://extism.org/)**, a cross-languag
   - [Scrobbler](#scrobbler)
   - [Lyrics](#lyrics)
   - [SonicSimilarity](#sonicsimilarity)
+  - [Podcast](#podcast)
   - [TaskWorker](#taskworker)
   - [Lifecycle](#lifecycle)
   - [SchedulerCallback](#schedulercallback)
@@ -336,6 +337,26 @@ Audio-similarity discovery based on acoustic features (e.g., embeddings). Both m
 | `nd_find_sonic_path`            | `{startSong, endSong, count}`    | `{matches: [{song, similarity}]}`          | Find a path between two songs         |
 
 Each match contains a `song` reference and a `similarity` score (float64, 0.0–1.0).
+
+### Podcast
+
+Provides podcast management and retrieval for the Subsonic API. A plugin implementing this capability acts as the podcast backend: Navidrome maps the plugin's data to the Subsonic podcast endpoints (`getPodcasts`, `getNewestPodcasts`, `getPodcastEpisode`, `createPodcastChannel`, `refreshPodcasts`, `downloadPodcastEpisode`, `deletePodcastChannel`, `deletePodcastEpisode`). All methods are **optional** — implement the ones your backend supports.
+
+| Function                          | Input                                       | Output                                       | Description                          |
+|-----------------------------------|---------------------------------------------|---------------------------------------------|--------------------------------------|
+| `nd_podcast_get_channels`         | `{includeEpisodes}`                         | `{channels: [PodcastChannel]}`              | Get all podcast channels             |
+| `nd_podcast_get_channel`          | `{id, includeEpisodes}`                     | `{channel: PodcastChannel}`                 | Get a single podcast channel         |
+| `nd_podcast_get_newest_episodes`  | `{count}`                                   | `{episodes: [PodcastEpisode]}`               | Get the newest podcast episodes      |
+| `nd_podcast_get_episode`          | `{id}`                                      | `{episode?: PodcastEpisode}`                | Get a single podcast episode        |
+| `nd_podcast_create_channel`       | `{url}`                                     | `{channel?: PodcastChannel}`                | Subscribe to a new channel           |
+| `nd_podcast_refresh_channels`     | `{channelIds?}`                             | `{refreshed: [string]}`                     | Refresh feeds for new episodes       |
+| `nd_podcast_download_episode`     | `{id}`                                      | `{episode?: PodcastEpisode}`                | Start downloading an episode         |
+| `nd_podcast_delete_channel`       | `{id}`                                      | `{deleted: bool}`                           | Delete a channel                     |
+| `nd_podcast_delete_episode`       | `{id}`                                      | `{deleted: bool}`                           | Delete an episode                    |
+
+A `PodcastChannel` has `{id, url, title, description, coverArt, originalImageUrl, status, errorMessage?, episodes?}`, and a `PodcastEpisode` has `{id, streamId?, channelId, title, description, publishDate, status, errorMessage?, streamUrl?, coverArt?, year, genre, duration, bitRate, size, contentType, suffix, path}`. The `status` is one of `new`, `downloading`, `completed`, `error`, `deleted`, `skipped`.
+
+When no podcast plugin is configured, the Subsonic podcast endpoints return an error instead of "not implemented".
 
 ### TaskWorker
 
@@ -1173,6 +1194,7 @@ replace github.com/navidrome/navidrome => ../../..
 | `scrobbler`       | `plugins/pdk/go/scrobbler`           | Scrobbling services                  |
 | `lyrics`          | `plugins/pdk/go/lyrics`              | Lyrics providers                     |
 | `sonicsimilarity` | `plugins/pdk/go/sonicsimilarity`     | Audio similarity discovery           |
+| `podcast`         | `plugins/pdk/go/podcast`             | Podcast management & retrieval       |
 | `taskworker`      | `plugins/pdk/go/taskworker`          | Background task processing           |
 | `lifecycle`       | `plugins/pdk/go/lifecycle`           | Plugin initialization                |
 | `scheduler`       | `plugins/pdk/go/scheduler`           | Scheduled task callbacks             |
@@ -1280,11 +1302,13 @@ See [examples/](examples/) for complete working plugins:
 | [minimal](examples/minimal/)                                   | Go             | MetadataAgent | –                                          | Basic structure example        |
 | [wikimedia](examples/wikimedia/)                               | Go             | MetadataAgent | HTTP                                       | Wikidata/Wikipedia integration |
 | [coverartarchive-py](examples/coverartarchive-py/)             | Python         | MetadataAgent | HTTP                                       | Cover Art Archive              |
-| [webhook-rs](examples/webhook-rs/)                             | Rust           | Scrobbler                                        | HTTP                                               | HTTP webhooks                  |
-| [nowplaying-py](examples/nowplaying-py/)                       | Python         | Lifecycle, SchedulerCallback                     | Scheduler, SubsonicAPI                             | Periodic now-playing logger    |
-| [library-inspector-rs](examples/library-inspector-rs/)         | Rust           | Lifecycle, SchedulerCallback                     | Library, Scheduler                                 | Periodic library stats logging |
-| [crypto-ticker](examples/crypto-ticker/)                       | Go             | Lifecycle, SchedulerCallback, WebSocketCallback  | WebSocket, Scheduler                               | Real-time crypto prices demo   |
-| [discord-rich-presence-rs](examples/discord-rich-presence-rs/) | Rust           | Scrobbler, SchedulerCallback, WebSocketCallback  | HTTP, WebSocket, Cache, Scheduler, Artwork, Config | Discord integration            |
+| [coverartarchive-as](examples/coverartarchive-as/)             | AssemblyScript | MetadataAgent | HTTP                                       | Cover Art Archive              |
+| [webhook-rs](examples/webhook-rs/)                             | Rust           | Scrobbler     | HTTP                                       | HTTP webhooks                  |
+| [nowplaying-py](examples/nowplaying-py/)                       | Python         | Lifecycle     | Scheduler, SubsonicAPI                     | Periodic now-playing logger    |
+| [library-inspector-rs](examples/library-inspector-rs/)         | Rust           | Lifecycle     | Library, Scheduler                         | Periodic library stats logging |
+| [crypto-ticker](examples/crypto-ticker/)                       | Go             | Lifecycle     | WebSocket, Scheduler                       | Real-time crypto prices demo   |
+| [discord-rich-presence-rs](examples/discord-rich-presence-rs/) | Rust           | Scrobbler     | HTTP, WebSocket, Cache, Scheduler, Artwork | Discord integration            |
+| [podcast](examples/podcast/)                                   | Go             | Podcast       | HTTP, KVStore, Scheduler                   | RSS podcast backend            |
 
 ---
 

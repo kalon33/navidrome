@@ -21,6 +21,7 @@ import (
 	"github.com/navidrome/navidrome/core/metrics"
 	"github.com/navidrome/navidrome/core/playback"
 	"github.com/navidrome/navidrome/core/playlists"
+	"github.com/navidrome/navidrome/core/podcast"
 	"github.com/navidrome/navidrome/core/scrobbler"
 	"github.com/navidrome/navidrome/core/sonic"
 	"github.com/navidrome/navidrome/core/stream"
@@ -57,7 +58,10 @@ func CreateServer() *server.Server {
 	dataStore := persistence.New(sqlDB)
 	broker := events.GetBroker()
 	insights := metrics.GetInstance(dataStore)
-	serverServer := server.New(dataStore, broker, insights)
+	metricsMetrics := metrics.GetPrometheusInstance(dataStore)
+	manager := plugins.GetManager(dataStore, broker, metricsMetrics)
+	podcastPodcast := podcast.New(manager)
+	serverServer := server.New(dataStore, broker, insights, podcastPodcast)
 	return serverServer
 }
 
@@ -89,15 +93,17 @@ func CreateSubsonicAPIRouter(ctx context.Context) *subsonic.Router {
 	fileCache := artwork.GetImageCache()
 	imageStore := artwork.GetImageStore()
 	fFmpeg := ffmpeg.New()
-	artworkArtwork := artwork.NewArtwork(dataStore, fileCache, imageStore, fFmpeg)
+	broker := events.GetBroker()
+	metricsMetrics := metrics.GetPrometheusInstance(dataStore)
+	manager := plugins.GetManager(dataStore, broker, metricsMetrics)
+	podcastPodcast := podcast.New(manager)
+	podcastCoverURLAdapter := podcast.NewPodcastCoverURLAdapter(podcastPodcast)
+	artworkArtwork := artwork.NewArtworkWithPodcastCover(dataStore, fileCache, imageStore, fFmpeg, podcastCoverURLAdapter)
 	transcodingCache := stream.GetTranscodingCache()
 	mediaStreamer := stream.NewMediaStreamer(dataStore, fFmpeg, transcodingCache)
 	share := core.NewShare(dataStore)
 	archiver := core.NewArchiver(mediaStreamer, dataStore, share)
 	players := core.NewPlayers(dataStore)
-	broker := events.GetBroker()
-	metricsMetrics := metrics.GetPrometheusInstance(dataStore)
-	manager := plugins.GetManager(dataStore, broker, metricsMetrics)
 	agentsAgents := agents.GetAgents(dataStore, manager)
 	matcherMatcher := matcher.New(dataStore)
 	provider := external.NewProvider(dataStore, agentsAgents, matcherMatcher, broker)
@@ -109,7 +115,7 @@ func CreateSubsonicAPIRouter(ctx context.Context) *subsonic.Router {
 	lyricsLyrics := lyrics.NewLyrics(dataStore, manager)
 	transcodeDecider := stream.NewTranscodeDecider(dataStore, fFmpeg)
 	sonicSonic := sonic.New(dataStore, manager, matcherMatcher)
-	router := subsonic.New(dataStore, artworkArtwork, mediaStreamer, archiver, players, provider, modelScanner, broker, playlistsPlaylists, playTracker, share, playbackServer, metricsMetrics, lyricsLyrics, transcodeDecider, sonicSonic)
+	router := subsonic.New(dataStore, artworkArtwork, mediaStreamer, archiver, players, provider, modelScanner, broker, playlistsPlaylists, playTracker, share, playbackServer, metricsMetrics, lyricsLyrics, transcodeDecider, sonicSonic, podcastPodcast)
 	return router
 }
 
@@ -119,14 +125,16 @@ func CreateJellyfinAPIRouter(ctx context.Context) *jellyfin.Router {
 	fileCache := artwork.GetImageCache()
 	imageStore := artwork.GetImageStore()
 	fFmpeg := ffmpeg.New()
-	artworkArtwork := artwork.NewArtwork(dataStore, fileCache, imageStore, fFmpeg)
+	broker := events.GetBroker()
+	metricsMetrics := metrics.GetPrometheusInstance(dataStore)
+	manager := plugins.GetManager(dataStore, broker, metricsMetrics)
+	podcastPodcast := podcast.New(manager)
+	podcastCoverURLAdapter := podcast.NewPodcastCoverURLAdapter(podcastPodcast)
+	artworkArtwork := artwork.NewArtworkWithPodcastCover(dataStore, fileCache, imageStore, fFmpeg, podcastCoverURLAdapter)
 	transcodingCache := stream.GetTranscodingCache()
 	mediaStreamer := stream.NewMediaStreamer(dataStore, fFmpeg, transcodingCache)
 	transcodeDecider := stream.NewTranscodeDecider(dataStore, fFmpeg)
 	players := core.NewPlayers(dataStore)
-	broker := events.GetBroker()
-	metricsMetrics := metrics.GetPrometheusInstance(dataStore)
-	manager := plugins.GetManager(dataStore, broker, metricsMetrics)
 	playTracker := scrobbler.GetPlayTracker(dataStore, broker, manager)
 	uploader := artwork.NewUploader(dataStore)
 	playlistsPlaylists := playlists.NewPlaylists(dataStore, uploader)
@@ -145,7 +153,12 @@ func CreatePublicRouter() *public.Router {
 	fileCache := artwork.GetImageCache()
 	imageStore := artwork.GetImageStore()
 	fFmpeg := ffmpeg.New()
-	artworkArtwork := artwork.NewArtwork(dataStore, fileCache, imageStore, fFmpeg)
+	broker := events.GetBroker()
+	metricsMetrics := metrics.GetPrometheusInstance(dataStore)
+	manager := plugins.GetManager(dataStore, broker, metricsMetrics)
+	podcastPodcast := podcast.New(manager)
+	podcastCoverURLAdapter := podcast.NewPodcastCoverURLAdapter(podcastPodcast)
+	artworkArtwork := artwork.NewArtworkWithPodcastCover(dataStore, fileCache, imageStore, fFmpeg, podcastCoverURLAdapter)
 	transcodingCache := stream.GetTranscodingCache()
 	mediaStreamer := stream.NewMediaStreamer(dataStore, fFmpeg, transcodingCache)
 	share := core.NewShare(dataStore)
@@ -249,7 +262,7 @@ func getPluginManager() *plugins.Manager {
 
 // wire_injectors.go:
 
-var allProviders = wire.NewSet(core.Set, artwork.Set, server.New, subsonic.New, jellyfin.New, nativeapi.New, public.New, persistence.New, lastfm.NewRouter, listenbrainz.NewRouter, events.GetBroker, scanner.GetInstance, scanner.GetWatcher, metrics.GetPrometheusInstance, db.Db, plugins.GetManager, sonic.New, wire.Bind(new(agents.PluginLoader), new(*plugins.Manager)), wire.Bind(new(scrobbler.PluginLoader), new(*plugins.Manager)), wire.Bind(new(lyrics.PluginLoader), new(*plugins.Manager)), wire.Bind(new(sonic.PluginLoader), new(*plugins.Manager)), wire.Bind(new(sonic.Engine), new(*sonic.Sonic)), wire.Bind(new(nativeapi.PluginManager), new(*plugins.Manager)), wire.Bind(new(core.PluginUnloader), new(*plugins.Manager)), wire.Bind(new(plugins.PluginMetricsRecorder), new(metrics.Metrics)), wire.Bind(new(core.Watcher), new(scanner.Watcher)), wire.Bind(new(playlists.ImageUploadService), new(artwork.Uploader)))
+var allProviders = wire.NewSet(core.Set, artwork.Set, server.New, subsonic.New, jellyfin.New, nativeapi.New, public.New, persistence.New, lastfm.NewRouter, listenbrainz.NewRouter, events.GetBroker, scanner.GetInstance, scanner.GetWatcher, metrics.GetPrometheusInstance, db.Db, plugins.GetManager, sonic.New, podcast.New, podcast.NewPodcastCoverURLAdapter, wire.Bind(new(agents.PluginLoader), new(*plugins.Manager)), wire.Bind(new(scrobbler.PluginLoader), new(*plugins.Manager)), wire.Bind(new(lyrics.PluginLoader), new(*plugins.Manager)), wire.Bind(new(sonic.PluginLoader), new(*plugins.Manager)), wire.Bind(new(sonic.Engine), new(*sonic.Sonic)), wire.Bind(new(podcast.Engine), new(*podcast.Podcast)), wire.Bind(new(podcast.PluginLoader), new(*plugins.Manager)), wire.Bind(new(artwork.PodcastCoverResolver), new(*podcast.PodcastCoverURLAdapter)), wire.Bind(new(nativeapi.PluginManager), new(*plugins.Manager)), wire.Bind(new(core.PluginUnloader), new(*plugins.Manager)), wire.Bind(new(plugins.PluginMetricsRecorder), new(metrics.Metrics)), wire.Bind(new(core.Watcher), new(scanner.Watcher)), wire.Bind(new(playlists.ImageUploadService), new(artwork.Uploader)))
 
 func GetPluginManager(ctx context.Context) *plugins.Manager {
 	manager := getPluginManager()

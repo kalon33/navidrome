@@ -14,22 +14,23 @@ import (
 	"github.com/navidrome/navidrome/conf"
 	"github.com/navidrome/navidrome/conf/mime"
 	"github.com/navidrome/navidrome/consts"
+	"github.com/navidrome/navidrome/core/podcast"
 	"github.com/navidrome/navidrome/log"
 	"github.com/navidrome/navidrome/model"
 	"github.com/navidrome/navidrome/utils/slice"
 	"github.com/navidrome/navidrome/utils/str"
 )
 
-func Index(ds model.DataStore, fs fs.FS) http.HandlerFunc {
-	return serveIndex(ds, fs, nil)
+func Index(ds model.DataStore, fs fs.FS, podcastEngine podcast.Engine) http.HandlerFunc {
+	return serveIndex(ds, fs, nil, podcastEngine)
 }
 
-func IndexWithShare(ds model.DataStore, fs fs.FS, shareInfo *model.Share) http.HandlerFunc {
-	return serveIndex(ds, fs, shareInfo)
+func IndexWithShare(ds model.DataStore, fs fs.FS, shareInfo *model.Share, podcastEngine podcast.Engine) http.HandlerFunc {
+	return serveIndex(ds, fs, shareInfo, podcastEngine)
 }
 
 // Injects the config in the `index.html` template
-func serveIndex(ds model.DataStore, fs fs.FS, shareInfo *model.Share) http.HandlerFunc {
+func serveIndex(ds model.DataStore, fs fs.FS, shareInfo *model.Share, podcastEngine podcast.Engine) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, err := ds.User(r.Context()).CountAll()
 		firstTime := c == 0 && err == nil
@@ -79,6 +80,7 @@ func serveIndex(ds model.DataStore, fs fs.FS, shareInfo *model.Share) http.Handl
 			"separator":                 string(os.PathSeparator),
 			"enableInspect":             conf.Server.Inspect.Enabled,
 			"pluginsEnabled":            conf.Server.Plugins.Enabled,
+			"podcastEnabled":            podcastEngine != nil && podcastEngine.HasProvider(),
 			"extAuthLogoutURL":          conf.Server.ExtAuth.LogoutURL,
 		}
 		if strings.HasPrefix(conf.Server.UILoginBackgroundURL, "/") {

@@ -43,6 +43,7 @@ const defaultConfig = {
   separator: '/',
   enableInspect: true,
   pluginsEnabled: true,
+  podcastEnabled: false,
 }
 
 let config

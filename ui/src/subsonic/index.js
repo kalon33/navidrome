@@ -97,6 +97,15 @@ const getCoverArtUrl = (record, size, square) => {
   } else if (record.sync !== undefined) {
     // This is a playlist
     return baseUrl(url('getCoverArt', 'pl-' + record.id + suffix, options))
+  } else if (record.isPodcast) {
+    // Podcast channel/episode cover, resolved server-side via the channel
+    return baseUrl(
+      url(
+        'getCoverArt',
+        'pc-' + (record.channelId || record.id) + suffix,
+        options,
+      ),
+    )
   } else if (record.streamUrl !== undefined) {
     // This is a radio station
     return baseUrl(url('getCoverArt', 'ra-' + record.id + suffix, options))
@@ -140,6 +149,58 @@ const streamUrl = (id, options) => {
   )
 }
 
+const subsonicResponse = (resp) => resp.json['subsonic-response']
+
+const requireOk = (resp) => {
+  const data = subsonicResponse(resp)
+  if (!data || data.status !== 'ok') {
+    const message = data?.error?.message || data?.status || 'subsonic error'
+    throw new Error(message)
+  }
+  return data
+}
+
+const getPodcasts = (id) => {
+  const options = { includeEpisodes: true }
+  if (id) {
+    options.id = id
+  }
+  return httpClient(url('getPodcasts', null, options)).then((resp) => {
+    const data = requireOk(resp)
+    return data.podcasts?.channel || []
+  })
+}
+
+const getNewestPodcasts = (count = 20) => {
+  return httpClient(url('getNewestPodcasts', null, { count })).then((resp) => {
+    const data = requireOk(resp)
+    return data.newestPodcasts?.episode || []
+  })
+}
+
+const getPodcastEpisode = (id) => {
+  return httpClient(url('getPodcastEpisode', null, { id })).then((resp) => {
+    const data = requireOk(resp)
+    return data.podcastEpisode
+  })
+}
+
+const createPodcastChannel = (feedUrl) =>
+  httpClient(url('createPodcastChannel', null, { url: feedUrl })).then(
+    requireOk,
+  )
+
+const refreshPodcasts = () => httpClient(url('refreshPodcasts')).then(requireOk)
+
+const downloadPodcastEpisode = (id) =>
+  httpClient(url('downloadPodcastEpisode', null, { id })).then(requireOk)
+
+const deletePodcastChannel = (id) =>
+  httpClient(url('deletePodcastChannel', null, { id })).then(requireOk)
+
+const deletePodcastEpisode = (id) =>
+  httpClient(url('deletePodcastEpisode', null, { id })).then(requireOk)
+
 export default {
   url,
   ping,
@@ -156,6 +217,14 @@ export default {
   getDiscCoverArtUrl,
   getAvatarUrl,
   streamUrl,
+  getPodcasts,
+  getNewestPodcasts,
+  getPodcastEpisode,
+  createPodcastChannel,
+  refreshPodcasts,
+  downloadPodcastEpisode,
+  deletePodcastChannel,
+  deletePodcastEpisode,
   getAlbumInfo,
   getArtistInfo,
   getTopSongs,

@@ -3,11 +3,13 @@ on:
   push:
     branches:
       - master
+      - podcast
     tags:
       - "v*"
   pull_request:
     branches:
       - master
+      - podcast
 
 concurrency:
   group: ${{ startsWith(github.ref, 'refs/tags/v') && 'tag' || 'branch' }}-${{ github.ref }}

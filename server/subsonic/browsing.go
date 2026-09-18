@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/navidrome/navidrome/conf"
@@ -167,6 +168,12 @@ func (api *Router) GetArtist(r *http.Request) (*responses.Subsonic, error) {
 	id, _ := p.String("id")
 	ctx := r.Context()
 
+	// Podcast episodes have no artist parent; clients that resolve the (empty)
+	// parent id should get a clean not-found rather than a noisy error log.
+	if id == "" {
+		return nil, newError(responses.ErrorDataNotFound, "Artist not found")
+	}
+
 	artist, err := api.ds.Artist(ctx).Get(id)
 	if errors.Is(err, model.ErrNotFound) {
 		log.Error(ctx, "Requested ArtistID not found ", "id", id)
@@ -190,6 +197,12 @@ func (api *Router) GetAlbum(r *http.Request) (*responses.Subsonic, error) {
 	id, _ := p.String("id")
 
 	ctx := r.Context()
+
+	// Podcast episodes have no album parent; clients that resolve the (empty)
+	// parent id should get a clean not-found rather than a noisy error log.
+	if id == "" {
+		return nil, newError(responses.ErrorDataNotFound, "Album not found")
+	}
 
 	album, err := api.ds.Album(ctx).Get(id)
 	if errors.Is(err, model.ErrNotFound) {
@@ -247,7 +260,24 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	id, _ := p.String("id")
 	ctx := r.Context()
 
-	mf, err := api.ds.MediaFile(ctx).Get(id)
+	// Podcast episodes are not library media files; return their metadata as a
+	// playable podcast Child so external clients can resolve episodes via getSong.
+	if strings.HasPrefix(id, "ep-") {
+		if api.podcast == nil || !api.podcast.HasProvider() {
+			return nil, newError(responses.ErrorDataNotFound, "Song not found")
+		}
+		ep, err := api.podcast.GetEpisode(ctx, id)
+		if err != nil || ep == nil {
+			log.Error(ctx, "Requested podcast episode not found", "id", id, err)
+			return nil, newError(responses.ErrorDataNotFound, "Song not found")
+		}
+		child := childFromPodcastEpisode(*ep)
+		response := newResponse()
+		response.Song = &child
+		return response, nil
+	}
+
+	mf, err := api.ds.MediaFile(ctx).Get(stripTranscodeSuffix(id))
 	if errors.Is(err, model.ErrNotFound) {
 		log.Error(r, "Requested MediaFileID not found ", "id", id)
 		return nil, newError(responses.ErrorDataNotFound, "Song not found")
@@ -260,6 +290,24 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	response := newResponse()
 	response.Song = new(childFromMediaFile(ctx, *mf))
 	return response, nil
+}
+
+// stripTranscodeSuffix removes a trailing "-<format>.<ext>" suffix that some
+// Subsonic clients (e.g. Tempus) append to a media id when they request a
+// transcoded stream. The library lookup needs the bare media id, so e.g.
+// "<id>-raw.flc" is reduced to "<id>". Ids without such a suffix are returned
+// unchanged.
+func stripTranscodeSuffix(id string) string {
+	dash := strings.LastIndex(id, "-")
+	if dash < 0 {
+		return id
+	}
+	suffix := id[dash+1:]
+	dot := strings.Index(suffix, ".")
+	if dot <= 0 || dot == len(suffix)-1 {
+		return id
+	}
+	return id[:dash]
 }
 
 func (api *Router) GetGenres(r *http.Request) (*responses.Subsonic, error) {
@@ -356,6 +404,14 @@ func (api *Router) GetSimilarSongs(r *http.Request) (*responses.Subsonic, error)
 		return nil, err
 	}
 	count := p.IntOr("count", 50)
+
+	// Podcast episodes are not library tracks and have no similar songs; return
+	// an empty result instead of a data-not-found error.
+	if strings.HasPrefix(id, "ep-") {
+		response := newResponse()
+		response.SimilarSongs = &responses.SimilarSongs{}
+		return response, nil
+	}
 
 	songs, err := api.provider.SimilarSongs(ctx, id, count)
 	if err != nil {

@@ -28,7 +28,7 @@ var _ = Describe("MediaAnnotationController", func() {
 		ds = &tests.MockDataStore{}
 		playTracker = &fakePlayTracker{}
 		eventBroker = &fakeEventBroker{}
-		router = New(ds, nil, nil, nil, nil, nil, nil, eventBroker, nil, playTracker, nil, nil, nil, nil, nil, nil)
+		router = New(ds, nil, nil, nil, nil, nil, nil, eventBroker, nil, playTracker, nil, nil, nil, nil, nil, nil, nil)
 	})
 
 	Describe("Scrobble", func() {
@@ -98,6 +98,27 @@ var _ = Describe("MediaAnnotationController", func() {
 				Expect(playTracker.ReportedPlayback[0].MediaId).To(Equal("12"))
 				Expect(playTracker.ReportedPlayback[0].State).To(Equal(scrobbler.StatePlaying))
 				Expect(playTracker.ReportedPlayback[0].ClientId).To(Equal("player-1"))
+			})
+		})
+
+		Context("podcast episode ids", func() {
+			It("skips scrobble submissions for ep- ids without error", func() {
+				r := newGetRequest("id=ep-1", "id=12")
+
+				_, err := router.Scrobble(r)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(playTracker.Submissions).To(HaveLen(1))
+				Expect(playTracker.Submissions[0].TrackID).To(Equal("12"))
+			})
+
+			It("does not register NowPlaying for ep- ids", func() {
+				r := newGetRequest("id=ep-1", "submission=false")
+
+				_, err := router.Scrobble(r)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(playTracker.ReportedPlayback).To(BeEmpty())
 			})
 		})
 	})

@@ -40,7 +40,7 @@ func (pub *Router) handleShares(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s = pub.mapShareInfo(r, *s)
-	server.IndexWithShare(pub.ds, ui.BuildAssets(), s)(w, r)
+	server.IndexWithShare(pub.ds, ui.BuildAssets(), s, nil)(w, r)
 }
 
 func (pub *Router) handleM3U(w http.ResponseWriter, r *http.Request) {

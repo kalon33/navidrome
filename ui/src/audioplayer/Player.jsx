@@ -87,7 +87,7 @@ const Player = () => {
     const currentIdx = state.savedPlayIndex || 0
     const trackIds = state.queue
       .slice(currentIdx, currentIdx + 4)
-      .filter((item) => !item.isRadio && item.trackId)
+      .filter((item) => !item.isRadio && !item.isPodcast && item.trackId)
       .map((item) => item.trackId)
 
     if (trackIds.length === 0) {
@@ -117,7 +117,7 @@ const Player = () => {
     const currentIdx = playerState.savedPlayIndex || 0
     const nextSongIds = playerState.queue
       .slice(currentIdx + 1, currentIdx + 4)
-      .filter((item) => !item.isRadio)
+      .filter((item) => !item.isRadio && !item.isPodcast)
       .map((item) => item.trackId)
 
     if (nextSongIds.length > 0) {
@@ -180,7 +180,11 @@ const Player = () => {
     }
 
     const handlePageHide = () => {
-      if (currentTrackIdRef.current && !playerState.current?.isRadio) {
+      if (
+        currentTrackIdRef.current &&
+        !playerState.current?.isRadio &&
+        !playerState.current?.isPodcast
+      ) {
         stoppedRef.current = true
         try {
           subsonic.reportPlaybackKeepalive(
@@ -251,7 +255,10 @@ const Player = () => {
         (playerState.clear || playerState.playIndex === 0),
       clearPriorAudioLists: playerState.clear,
       extendsContent: (
-        <PlayerToolbar id={current.trackId} isRadio={current.isRadio} />
+        <PlayerToolbar
+          id={current.trackId}
+          isRadio={current.isRadio || current.isPodcast}
+        />
       ),
       defaultVolume: isMobilePlayer ? 1 : playerState.volume,
       showMediaSession: !current.isRadio,
@@ -288,7 +295,7 @@ const Player = () => {
       if (info.duration) {
         const song = info.song
         document.title = `${song.title} - ${song.artist} - Navidrome`
-        if (!info.isRadio) {
+        if (!info.isRadio && !info.isPodcast) {
           const posMs = Math.floor(info.currentTime * 1000)
           lastPositionMsRef.current = posMs
           const isNewTrack = info.trackId !== currentTrackId
@@ -324,7 +331,7 @@ const Player = () => {
   )
 
   const onAudioPlayTrackChange = useCallback(() => {
-    if (currentTrackId) {
+    if (currentTrackId && !playerStateRef.current?.current?.isPodcast) {
       subsonic.reportPlayback(
         currentTrackId,
         lastPositionMsRef.current,
@@ -338,7 +345,7 @@ const Player = () => {
   const onAudioPause = useCallback(
     (info) => {
       dispatch(currentPlaying(info))
-      if (!info.isRadio && currentTrackId) {
+      if (!info.isRadio && !info.isPodcast && currentTrackId) {
         const posMs = Math.floor(info.currentTime * 1000)
         lastPositionMsRef.current = posMs
         subsonic.reportPlayback(currentTrackId, posMs, 'paused')
@@ -350,7 +357,7 @@ const Player = () => {
 
   const onAudioEnded = useCallback(
     (currentPlayId, audioLists, info) => {
-      if (currentTrackId && !info.isRadio) {
+      if (currentTrackId && !info.isRadio && !info.isPodcast) {
         const posMs = Math.floor((info.duration || 0) * 1000)
         subsonic.reportPlayback(currentTrackId, posMs, 'stopped')
       }
@@ -383,7 +390,7 @@ const Player = () => {
       if (currentIdx >= 0) {
         const nextSongIds = playerState.queue
           .slice(currentIdx + 1, currentIdx + 4)
-          .filter((item) => !item.isRadio)
+          .filter((item) => !item.isRadio && !item.isPodcast)
           .map((item) => item.trackId)
         if (nextSongIds.length > 0) {
           decisionService.prefetchDecisions(nextSongIds)
@@ -395,7 +402,11 @@ const Player = () => {
 
   const onBeforeDestroy = useCallback(() => {
     return new Promise((resolve, reject) => {
-      if (currentTrackId && !playerStateRef.current?.current?.isRadio) {
+      if (
+        currentTrackId &&
+        !playerStateRef.current?.current?.isRadio &&
+        !playerStateRef.current?.current?.isPodcast
+      ) {
         subsonic.reportPlayback(
           currentTrackId,
           lastPositionMsRef.current,
@@ -434,7 +445,8 @@ const Player = () => {
       timer = null
       if (
         !currentTrackIdRef.current ||
-        playerStateRef.current?.current?.isRadio
+        playerStateRef.current?.current?.isRadio ||
+        playerStateRef.current?.current?.isPodcast
       ) {
         return
       }
