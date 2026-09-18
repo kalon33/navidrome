@@ -2,6 +2,7 @@ package subsonic
 
 import (
 	"compress/gzip"
+	"compress/zlib"
 	"context"
 	"errors"
 	"fmt"
@@ -159,28 +160,25 @@ func (api *Router) proxyPodcastEpisode(w http.ResponseWriter, r *http.Request, i
 		log.Warn(ctx, "Podcast enclosure returned an error status", "id", id, "url", episode.StreamURL, "status", resp.StatusCode)
 		return nil, newError(responses.ErrorDataNotFound, "podcast enclosure unavailable (HTTP %d)", resp.StatusCode)
 	}
-	// We ask for Accept-Encoding: identity, but some CDNs gzip the response
-	// regardless. Go only transparently decompresses gzip it requested itself, so
-	// here resp.Body is the still-compressed bytes with a Content-Length matching
-	// the gzipped size. Relaying that verbatim would send compressed audio
-	// (without a Content-Encoding header) that ExoPlayer cannot decode, causing
-	// silent playback failures while the web UI (browser auto-decodes) works.
-	// Detect this case and decompress server-side.
-	body := resp.Body
-	if strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
-		gz, gzErr := gzip.NewReader(resp.Body)
-		if gzErr != nil {
-			log.Warn(ctx, "Could not open gzip reader for podcast enclosure", "id", id, "url", episode.StreamURL, gzErr)
-			return nil, newError(responses.ErrorGeneric, "error streaming podcast episode")
-		}
-		body = &gzipCloseReader{gz: gz, body: resp.Body}
+	// We ask for Accept-Encoding: identity, but some CDNs compress the response
+	// regardless (gzip, deflate, br, ...). Go only transparently decompresses gzip
+	// it requested itself, so here resp.Body is the still-compressed bytes with a
+	// Content-Length matching the compressed size. Relaying that verbatim would
+	// send compressed audio (without a Content-Encoding header) that ExoPlayer
+	// cannot decode, causing silent playback failures while the web UI (browser
+	// auto-decodes) works. Hence no server logs: the proxy "succeeded" by
+	// relaying unreadable bytes. Decompress the encodings we can (gzip, deflate)
+	// and refuse the ones we cannot instead of relaying them silently.
+	body, compressed, encErr := decompressPodcastEnclosure(ctx, id, episode.StreamURL, resp)
+	if encErr != nil {
+		return nil, encErr
 	}
 	defer body.Close()
 	// Relay status code and content-related headers from the publisher. The
-	// Content-Length is dropped when decompressing gzip, since it described the
+	// Content-Length is dropped when decompressing, since it described the
 	// compressed size, not the audio size; a wrong length would break seeking.
 	relayHeaders := []string{"Content-Type", "Content-Range", "Accept-Ranges"}
-	if !strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
+	if !compressed {
 		relayHeaders = append([]string{"Content-Length"}, relayHeaders...)
 	}
 	for _, h := range relayHeaders {
@@ -233,17 +231,52 @@ func isClientDisconnect(err error) bool {
 		strings.Contains(msg, "EOF")
 }
 
-// gzipCloseReader wraps a gzip.Reader so closing it also closes the underlying
-// response body, and so it satisfies io.ReadCloser for the proxy copy.
-type gzipCloseReader struct {
-	gz   *gzip.Reader
-	body io.Closer
+// decompressPodcastEnclosure inspects the publisher response's Content-Encoding
+// and returns a reader yielding the decompressed audio bytes. It decompresses
+// the encodings Go can handle server-side (gzip, deflate), leaves identity/
+// empty untouched, and refuses any other encoding (br, ...) rather than
+// relaying compressed bytes that clients cannot decode. The compressed flag
+// tells the caller to drop the (now stale) Content-Length.
+func decompressPodcastEnclosure(ctx context.Context, id, streamURL string, resp *http.Response) (io.ReadCloser, bool, error) {
+	encoding := strings.TrimSpace(resp.Header.Get("Content-Encoding"))
+	switch strings.ToLower(encoding) {
+	case "", "identity":
+		return resp.Body, false, nil
+	case "gzip":
+		gz, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			log.Warn(ctx, "Could not open gzip reader for podcast enclosure", "id", id, "url", streamURL, err)
+			return nil, false, newError(responses.ErrorGeneric, "error streaming podcast episode")
+		}
+		return &decompressCloseReader{reader: gz, body: resp.Body}, true, nil
+	case "deflate":
+		zr, err := zlib.NewReader(resp.Body)
+		if err != nil {
+			log.Warn(ctx, "Could not open deflate reader for podcast enclosure", "id", id, "url", streamURL, err)
+			return nil, false, newError(responses.ErrorGeneric, "error streaming podcast episode")
+		}
+		return &decompressCloseReader{reader: zr, body: resp.Body}, true, nil
+	default:
+		// An encoding we cannot decompress (br, compress, ...). Relaying it
+		// verbatim would send unreadable bytes to the client with no error log,
+		// reproducing the original silent-playback-failure symptom. Refuse it.
+		log.Warn(ctx, "Podcast enclosure returned an unsupported Content-Encoding", "id", id, "url", streamURL, "encoding", encoding)
+		return nil, false, newError(responses.ErrorGeneric, "error streaming podcast episode")
+	}
 }
 
-func (g *gzipCloseReader) Read(p []byte) (int, error) { return g.gz.Read(p) }
-func (g *gzipCloseReader) Close() error {
-	_ = g.gz.Close()
-	return g.body.Close()
+// decompressCloseReader wraps a decompressor (gzip/zlib reader) so closing it
+// also closes the underlying response body, and so it satisfies io.ReadCloser
+// for the proxy copy.
+type decompressCloseReader struct {
+	reader io.ReadCloser
+	body   io.Closer
+}
+
+func (d *decompressCloseReader) Read(p []byte) (int, error) { return d.reader.Read(p) }
+func (d *decompressCloseReader) Close() error {
+	_ = d.reader.Close()
+	return d.body.Close()
 }
 
 // downloadFilename builds a safe attachment filename for a podcast episode,

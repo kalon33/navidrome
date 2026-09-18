@@ -3,6 +3,7 @@ package subsonic
 import (
 	"bytes"
 	"compress/gzip"
+	"compress/zlib"
 	"context"
 	"errors"
 	"net/http"
@@ -273,6 +274,56 @@ var _ = Describe("Stream (podcast episodes)", func() {
 			// The body must be the decompressed audio, not the gzipped bytes.
 			Expect(w.Body.Len()).To(Equal(len(audio)))
 			Expect(w.Body.Bytes()).To(Equal(audio))
+		})
+
+		It("decompresses a deflated enclosure and drops the stale Content-Length", func() {
+			audio := bytes.Repeat([]byte("audio"), 500) // 2500 bytes
+			var zlibBuf bytes.Buffer
+			zw := zlib.NewWriter(&zlibBuf)
+			_, _ = zw.Write(audio)
+			_ = zw.Close()
+			deflated := zlibBuf.Bytes()
+			deflateEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "audio/mpeg")
+				w.Header().Set("Content-Encoding", "deflate")
+				w.Header().Set("Content-Length", strconv.Itoa(len(deflated)))
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(deflated)
+			}))
+			DeferCleanup(deflateEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: deflateEnclosure.URL + "/e.mp3", ContentType: "audio/mpeg"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(w.Code).To(Equal(http.StatusOK))
+			Expect(w.Header().Get("Content-Length")).To(BeEmpty())
+			Expect(w.Header().Get("Content-Encoding")).To(BeEmpty())
+			Expect(w.Body.Len()).To(Equal(len(audio)))
+			Expect(w.Body.Bytes()).To(Equal(audio))
+		})
+
+		It("refuses an unsupported Content-Encoding instead of relaying compressed bytes", func() {
+			compressed := []byte("fake-brotli-bytes")
+			brEnclosure := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "audio/mpeg")
+				w.Header().Set("Content-Encoding", "br")
+				w.Header().Set("Content-Length", strconv.Itoa(len(compressed)))
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(compressed)
+			}))
+			DeferCleanup(brEnclosure.Close)
+			engine := api.podcast.(*fakeStreamPodcastEngine)
+			engine.episode = &capabilities.PodcastEpisode{ID: "ep-1", StreamURL: brEnclosure.URL + "/e.mp3", ContentType: "audio/mpeg"}
+			w := httptest.NewRecorder()
+			r := newStreamRequest("GET", "stream", "id", "ep-1")
+
+			_, err := api.Stream(w, r)
+			Expect(err).To(HaveOccurred())
+			// The compressed body must never be relayed as audio.
+			Expect(w.Body.Len()).To(Equal(0))
 		})
 	})
 
