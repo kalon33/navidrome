@@ -182,6 +182,7 @@
     },
     "player": {
       "name": "Tocador |||| Tocadores",
+      "menuName": "Tocadores e chaves de API",
       "fields": {
         "name": "Nome",
         "transcodingId": "Conversão",
@@ -190,7 +191,29 @@
         "userName": "Usuário",
         "lastSeen": "Últ. acesso",
         "reportRealPath": "Use paths reais",
-        "scrobbleEnabled": "Enviar scrobbles para serviços externos"
+        "scrobbleEnabled": "Enviar scrobbles para serviços externos",
+        "hasApiKey": "Chave de API"
+      },
+      "actions": {
+        "generateApiKey": "Gerar chave de API",
+        "regenerateApiKey": "Gerar nova",
+        "revokeApiKey": "Revogar",
+        "copyApiKey": "Copiar"
+      },
+      "message": {
+        "apiKeyActive": "Este tocador tem uma chave de API. Use-a no seu app como chave de API, ou como senha se o app não usar autenticação por token.",
+        "apiKeyNone": "Sem chave de API. Gere uma para conectar um app a este tocador.",
+        "apiKeyNoneOther": "Sem chave de API.",
+        "apiKeyPending": "Copie esta chave agora. Ela será salva quando você clicar em Salvar e não será exibida novamente.",
+        "apiKeyRevokePending": "A chave de API será removida quando você salvar.",
+        "deleteWithKeyTitle": "Excluir tocador",
+        "deleteWithKeyContent": "Este tocador tem uma chave de API. Os apps que a usam vão parar de funcionar."
+      },
+      "notifications": {
+        "apiKeyCopied": "Chave de API copiada para o clipboard"
+      },
+      "validation": {
+        "apiKeyFormat": "Formato de chave de API inválido"
       }
     },
     "transcoding": {
@@ -202,7 +225,7 @@
         "command": "Comando"
       },
       "choices": {
-        "noDefaultBitRate": ""
+        "noDefaultBitRate": "Nenhum"
       }
     },
     "playlist": {
@@ -609,7 +632,10 @@
     "coverRemoved": "Capa removida",
     "coverUploadError": "Erro ao enviar capa",
     "coverRemoveError": "Erro ao remover capa",
-    "metadataRefreshStarted": "Atualizando metadados em segundo plano"
+    "metadataRefreshStarted": "Atualizando metadados em segundo plano",
+    "quickConnectApproved": "%{app} em %{device} está conectado agora",
+    "quickConnectInvalidCode": "Código inválido ou expirado",
+    "quickConnectError": "Não foi possível aprovar o código"
   },
   "menu": {
     "library": "Biblioteca",
@@ -645,7 +671,15 @@
       "selectLibraries": "Selecionar Bibliotecas",
       "none": "Nenhuma"
     },
-    "onlyFavourites": "Somente favoritas"
+    "onlyFavourites": "Somente favoritas",
+    "quickConnect": {
+      "name": "Conexão Rápida",
+      "code": "Código",
+      "help": "Digite o código exibido por um aplicativo Jellyfin para conectá-lo à sua conta",
+      "confirm": "Conectar %{app} %{version} em %{device} à sua conta?",
+      "continue": "Continuar",
+      "approve": "Aprovar"
+    }
   },
   "player": {
     "playListsText": "Fila de Execução",

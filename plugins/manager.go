@@ -50,7 +50,7 @@ type PluginMetricsRecorder interface {
 type Manager struct {
 	mu      sync.RWMutex
 	plugins map[string]*plugin
-	ctx     context.Context
+	ctx     context.Context //nolint:containedctx // manager lifecycle ctx, cancelled by Stop
 	cancel  context.CancelFunc
 	cache   wazero.CompilationCache
 	stopped atomic.Bool    // Set to true when Stop() is called
@@ -135,7 +135,7 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	// Clear previous error states so plugins can be retried on restart
 	adminCtx := adminContext(ctx)
-	if err := m.ds.Plugin(adminCtx).ClearErrors(); err != nil {
+	if err := m.ds.Plugin().ClearErrors(adminCtx); err != nil {
 		log.Error(ctx, "Error clearing plugin errors", err)
 	}
 
@@ -328,9 +328,9 @@ func (m *Manager) EnablePlugin(ctx context.Context, id string) error {
 	}
 
 	adminCtx := adminContext(ctx)
-	repo := m.ds.Plugin(adminCtx)
+	repo := m.ds.Plugin()
 
-	plugin, err := repo.Get(id)
+	plugin, err := repo.Get(adminCtx, id)
 	if err != nil {
 		return fmt.Errorf("getting plugin from DB: %w", err)
 	}
@@ -349,7 +349,7 @@ func (m *Manager) EnablePlugin(ctx context.Context, id string) error {
 		// Store error and return
 		plugin.LastError = err.Error()
 		plugin.UpdatedAt = time.Now()
-		_ = repo.Put(plugin)
+		_ = repo.Put(adminCtx, plugin)
 		return fmt.Errorf("loading plugin: %w", err)
 	}
 
@@ -357,7 +357,7 @@ func (m *Manager) EnablePlugin(ctx context.Context, id string) error {
 	plugin.Enabled = true
 	plugin.LastError = ""
 	plugin.UpdatedAt = time.Now()
-	if err := repo.Put(plugin); err != nil {
+	if err := repo.Put(adminCtx, plugin); err != nil {
 		// Unload since we couldn't update DB
 		_ = m.unloadPlugin(id)
 		return fmt.Errorf("updating plugin in DB: %w", err)
@@ -376,9 +376,9 @@ func (m *Manager) DisablePlugin(ctx context.Context, id string) error {
 	}
 
 	adminCtx := adminContext(ctx)
-	repo := m.ds.Plugin(adminCtx)
+	repo := m.ds.Plugin()
 
-	plugin, err := repo.Get(id)
+	plugin, err := repo.Get(adminCtx, id)
 	if err != nil {
 		return fmt.Errorf("getting plugin from DB: %w", err)
 	}
@@ -395,7 +395,7 @@ func (m *Manager) DisablePlugin(ctx context.Context, id string) error {
 	// Update DB
 	plugin.Enabled = false
 	plugin.UpdatedAt = time.Now()
-	if err := repo.Put(plugin); err != nil {
+	if err := repo.Put(adminCtx, plugin); err != nil {
 		return fmt.Errorf("updating plugin in DB: %w", err)
 	}
 
@@ -413,9 +413,9 @@ func (m *Manager) ValidatePluginConfig(ctx context.Context, id, configJSON strin
 	}
 
 	adminCtx := adminContext(ctx)
-	repo := m.ds.Plugin(adminCtx)
+	repo := m.ds.Plugin()
 
-	plugin, err := repo.Get(id)
+	plugin, err := repo.Get(adminCtx, id)
 	if err != nil {
 		return fmt.Errorf("getting plugin from DB: %w", err)
 	}
@@ -481,9 +481,9 @@ func (m *Manager) updatePluginSettings(ctx context.Context, id string, updateFn 
 	}
 
 	adminCtx := adminContext(ctx)
-	repo := m.ds.Plugin(adminCtx)
+	repo := m.ds.Plugin()
 
-	plugin, err := repo.Get(id)
+	plugin, err := repo.Get(adminCtx, id)
 	if err != nil {
 		return fmt.Errorf("getting plugin from DB: %w", err)
 	}
@@ -517,7 +517,7 @@ func (m *Manager) updatePluginSettings(ctx context.Context, id string, updateFn 
 			log.Debug(ctx, "Plugin was not loaded", "plugin", id)
 		}
 		plugin.Enabled = false
-		if err := repo.Put(plugin); err != nil {
+		if err := repo.Put(adminCtx, plugin); err != nil {
 			return fmt.Errorf("updating plugin in DB: %w", err)
 		}
 		log.Info(ctx, "Disabled plugin due to "+disableReason, "plugin", id)
@@ -525,7 +525,7 @@ func (m *Manager) updatePluginSettings(ctx context.Context, id string, updateFn 
 		return nil
 	}
 
-	if err := repo.Put(plugin); err != nil {
+	if err := repo.Put(adminCtx, plugin); err != nil {
 		return fmt.Errorf("updating plugin in DB: %w", err)
 	}
 
@@ -537,7 +537,7 @@ func (m *Manager) updatePluginSettings(ctx context.Context, id string, updateFn 
 		if err := m.loadPluginWithConfig(plugin); err != nil {
 			plugin.LastError = err.Error()
 			plugin.Enabled = false
-			_ = repo.Put(plugin)
+			_ = repo.Put(adminCtx, plugin)
 			return fmt.Errorf("reloading plugin: %w", err)
 		}
 	}
@@ -591,10 +591,10 @@ func (m *Manager) UnloadDisabledPlugins(ctx context.Context) {
 	}
 
 	adminCtx := adminContext(ctx)
-	repo := m.ds.Plugin(adminCtx)
+	repo := m.ds.Plugin()
 
 	// Get all disabled plugins from the database
-	plugins, err := repo.GetAll(model.QueryOptions{
+	plugins, err := repo.GetAll(adminCtx, model.QueryOptions{
 		Filters: squirrel.Eq{"enabled": false},
 	})
 	if err != nil {
