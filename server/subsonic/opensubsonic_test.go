@@ -41,7 +41,7 @@ var _ = Describe("GetOpenSubsonicExtensions", func() {
 
 	Context("without sonic similarity plugin", func() {
 		BeforeEach(func() {
-			router = subsonic.New(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			router = subsonic.New(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		})
 
 		It("should return the base 8 OpenSubsonicExtensions without sonicSimilarity", func() {
