@@ -116,7 +116,6 @@ jobs:
           git status --porcelain
           if [ -n "$(git status --porcelain)" ]; then
             echo 'Generated code is out of date. Run "make gen" and commit the changes'
-            git diff
             exit 1
           fi
 
