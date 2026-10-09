@@ -230,7 +230,6 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	id, _ := p.String("id")
 	ctx := r.Context()
 
-<<<<<<< HEAD
 	// Podcast episodes are not library media files; return their metadata as a
 	// playable podcast Child so external clients can resolve episodes via getSong.
 	if strings.HasPrefix(id, "ep-") {
@@ -249,9 +248,6 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	}
 
 	mf, err := api.ds.MediaFile().Get(ctx, stripTranscodeSuffix(id))
-=======
-	mf, err := api.ds.MediaFile().Get(ctx, id)
->>>>>>> origin/master
 	if errors.Is(err, model.ErrNotFound) {
 		log.Error(r, "Requested MediaFileID not found ", "id", id)
 		return nil, newError(responses.ErrorDataNotFound, "Song not found")

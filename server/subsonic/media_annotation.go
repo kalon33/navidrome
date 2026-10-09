@@ -216,15 +216,11 @@ func (api *Router) scrobblerSubmit(ctx context.Context, ids []string, times []ti
 }
 
 func (api *Router) scrobblerNowPlaying(ctx context.Context, trackId string, position int) error {
-<<<<<<< HEAD
 	// Podcast episodes are not library media files; they have no Now Playing
 	// metadata to report, so skip them silently.
 	if strings.HasPrefix(trackId, "ep-") {
 		return nil
-	}
-=======
->>>>>>> origin/master
-	mf, err := api.ds.MediaFile().Get(ctx, trackId)
+	}	mf, err := api.ds.MediaFile().Get(ctx, trackId)
 	if err != nil {
 		return err
 	}
