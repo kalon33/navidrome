@@ -104,6 +104,7 @@ func CreateSubsonicAPIRouter(ctx context.Context) *subsonic.Router {
 	artworkArtwork := artwork.NewArtworkWithPodcastCover(dataStore, fileCache, imageStore, fFmpeg, podcastCoverURLAdapter)
 	transcodingCache := stream.GetTranscodingCache()
 	mediaStreamer := stream.NewMediaStreamer(dataStore, fFmpeg, transcodingCache)
+	transcodeDecider := stream.NewTranscodeDecider(dataStore, fFmpeg)
 	share := core.NewShare(dataStore)
 	archiver := core.NewArchiver(mediaStreamer, transcodeDecider, dataStore, share, artworkArtwork)
 	players := core.NewPlayers(dataStore)
@@ -116,7 +117,6 @@ func CreateSubsonicAPIRouter(ctx context.Context) *subsonic.Router {
 	playTracker := scrobbler.GetPlayTracker(dataStore, broker, manager)
 	playbackServer := playback.GetInstance(dataStore)
 	lyricsLyrics := lyrics.NewLyrics(dataStore, manager)
-	transcodeDecider := stream.NewTranscodeDecider(dataStore, fFmpeg)
 	sonicSonic := sonic.New(dataStore, manager, matcherMatcher)
 	router := subsonic.New(dataStore, artworkArtwork, mediaStreamer, archiver, players, provider, modelScanner, broker, playlistsPlaylists, playTracker, share, playbackServer, metricsMetrics, lyricsLyrics, transcodeDecider, sonicSonic, podcastPodcast)
 	return router
