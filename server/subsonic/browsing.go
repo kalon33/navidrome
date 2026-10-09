@@ -174,36 +174,6 @@ func (api *Router) GetArtist(r *http.Request) (*responses.Subsonic, error) {
 		return nil, newError(responses.ErrorDataNotFound, "Artist not found")
 	}
 
-	artist, err := api.ds.Artist().Get(ctx, id)
-	if errors.Is(err, model.ErrNotFound) {
-		log.Error(ctx, "Requested ArtistID not found ", "id", id)
-		return nil, newError(responses.ErrorDataNotFound, "Artist not found")
-	}
-	if err != nil {
-		log.Error(ctx, "Error retrieving artist", "id", id, err)
-		return nil, err
-	}
-
-	response := newResponse()
-	response.ArtistWithAlbumsID3, err = api.buildArtist(r, artist)
-	if err != nil {
-		log.Error(ctx, "Error retrieving albums by artist", "id", artist.ID, "name", artist.Name, err)
-	}
-	return response, err
-}
-
-func (api *Router) GetAlbum(r *http.Request) (*responses.Subsonic, error) {
-	p := req.Params(r)
-	id, _ := p.String("id")
-
-	ctx := r.Context()
-
-	// Podcast episodes have no album parent; clients that resolve the (empty)
-	// parent id should get a clean not-found rather than a noisy error log.
-	if id == "" {
-		return nil, newError(responses.ErrorDataNotFound, "Album not found")
-	}
-
 	album, err := api.ds.Album().Get(ctx, id)
 	if errors.Is(err, model.ErrNotFound) {
 		log.Error(ctx, "Requested AlbumID not found ", "id", id)
@@ -260,6 +230,7 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	id, _ := p.String("id")
 	ctx := r.Context()
 
+<<<<<<< HEAD
 	// Podcast episodes are not library media files; return their metadata as a
 	// playable podcast Child so external clients can resolve episodes via getSong.
 	if strings.HasPrefix(id, "ep-") {
@@ -278,6 +249,9 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 	}
 
 	mf, err := api.ds.MediaFile().Get(ctx, stripTranscodeSuffix(id))
+=======
+	mf, err := api.ds.MediaFile().Get(ctx, id)
+>>>>>>> origin/master
 	if errors.Is(err, model.ErrNotFound) {
 		log.Error(r, "Requested MediaFileID not found ", "id", id)
 		return nil, newError(responses.ErrorDataNotFound, "Song not found")
