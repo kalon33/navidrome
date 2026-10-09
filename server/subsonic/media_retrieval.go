@@ -135,6 +135,7 @@ func (api *Router) GetLyricsBySongId(r *http.Request) (*responses.Subsonic, erro
 		response.LyricsList = &responses.LyricsList{}
 		return response, nil
 	}
+
 	mediaFile, err := api.ds.MediaFile().Get(r.Context(), id)
 	if err != nil {
 		return nil, err

@@ -220,7 +220,9 @@ func (api *Router) scrobblerNowPlaying(ctx context.Context, trackId string, posi
 	// metadata to report, so skip them silently.
 	if strings.HasPrefix(trackId, "ep-") {
 		return nil
-	}	mf, err := api.ds.MediaFile().Get(ctx, trackId)
+	}
+
+	mf, err := api.ds.MediaFile().Get(ctx, trackId)
 	if err != nil {
 		return err
 	}
