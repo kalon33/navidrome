@@ -6,10 +6,11 @@ import (
 	"net/http/httptest"
 	"net/url"
 
-	"github.com/navidrome/navidrome/plugins/capabilities"
-	"github.com/navidrome/navidrome/server/subsonic/responses"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/navidrome/navidrome/plugins/capabilities"
+	"github.com/navidrome/navidrome/server/subsonic/responses"
 )
 
 // fakePodcastEngine is a test double for podcastsvc.Engine that returns canned
@@ -179,7 +180,7 @@ var _ = Describe("Podcasts", func() {
 							Artist:    "Guest Author",
 							Status:    capabilities.PodcastStatusCompleted,
 						},
-						},
+					},
 				},
 			}
 			resp, err := api.GetPodcasts(newPodcastRequest("getPodcasts", "includeEpisodes", "true"))
