@@ -52,8 +52,10 @@ export const songFromPodcastEpisode = (ep) => {
     trackId: ep.streamId || ep.id,
     name: ep.title,
     title: ep.title,
-    album: ep.channelTitle || ep.title,
-    artist: ep.channelTitle || 'Podcast',
+    // The server exposes the feed name as the Subsonic artist/album attributes;
+    // fall back to a locally injected channelTitle, then to a generic label.
+    album: ep.artist || ep.channelTitle || ep.title,
+    artist: ep.artist || ep.channelTitle || 'Podcast',
     cover,
     streamUrl: ep.streamUrl,
     duration: ep.duration,

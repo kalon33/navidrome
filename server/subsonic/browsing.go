@@ -259,7 +259,7 @@ func (api *Router) GetSong(r *http.Request) (*responses.Subsonic, error) {
 			log.Error(ctx, "Requested podcast episode not found", "id", id, err)
 			return nil, newError(responses.ErrorDataNotFound, "Song not found")
 		}
-		child := childFromPodcastEpisode(*ep)
+		child := childFromPodcastEpisode(*ep, api.podcastChannelTitle(ctx, ep.ChannelID))
 		response := newResponse()
 		response.Song = &child
 		return response, nil

@@ -137,6 +137,33 @@ describe('podcast helper', () => {
       const song = songFromPodcastEpisode({ id: 'ep-1', streamId: 'mf-9' })
       expect(song.trackId).toBe('mf-9')
     })
+    it('prefers the server-resolved artist (feed name) when present', () => {
+      const song = songFromPodcastEpisode({
+        id: 'ep-1',
+        streamId: 'ep-1',
+        title: 'Episode 1',
+        artist: 'The Show',
+        album: 'The Show',
+        channelTitle: 'Ignored local fallback',
+      })
+      expect(song.artist).toBe('The Show')
+      expect(song.album).toBe('The Show')
+    })
+    it('falls back to channelTitle when the server artist is absent', () => {
+      const song = songFromPodcastEpisode({
+        id: 'ep-1',
+        streamId: 'ep-1',
+        title: 'Episode 1',
+        channelTitle: 'Show',
+      })
+      expect(song.artist).toBe('Show')
+      expect(song.album).toBe('Show')
+    })
+    it('falls back to a generic artist when no feed name is known', () => {
+      const song = songFromPodcastEpisode({ id: 'ep-1', streamId: 'ep-1', title: 'Episode 1' })
+      expect(song.artist).toBe('Podcast')
+      expect(song.album).toBe('Episode 1')
+    })
     it('uses server-resolved cover when a channel id (ch-...) is present', () => {
       const song = songFromPodcastEpisode({
         id: 'ep-1',

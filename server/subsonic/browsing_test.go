@@ -204,6 +204,11 @@ var _ = Describe("Browsing", func() {
 					Suffix:    "mp3",
 					Duration:  120,
 				},
+				channel: &capabilities.PodcastChannel{
+					ID:     "ch-1",
+					Title:  "The Show",
+					Status: capabilities.PodcastStatusCompleted,
+				},
 			}}
 			r := httptest.NewRequest("GET", "/rest/getSong?id=ep-1", nil)
 			resp, err := api.GetSong(r)
@@ -213,6 +218,9 @@ var _ = Describe("Browsing", func() {
 			Expect(resp.Song.Title).To(Equal("Episode One"))
 			Expect(resp.Song.Type).To(Equal("podcast"))
 			Expect(resp.Song.Duration).To(Equal(int32(120)))
+			// The feed name is exposed as the episode's artist so players display it.
+			Expect(resp.Song.Artist).To(Equal("The Show"))
+			Expect(resp.Song.Album).To(Equal("The Show"))
 		})
 
 		It("returns not-found when no podcast provider is configured for ep- ids", func() {

@@ -1,6 +1,7 @@
 package subsonic
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/navidrome/navidrome/model"
@@ -66,9 +67,16 @@ func (api *Router) GetNewestPodcasts(r *http.Request) (*responses.Subsonic, erro
 		return nil, err
 	}
 
+	// Resolve the feed names once so each episode carries its channel's title as
+	// its artist, keeping the player display consistent with getPodcasts.
+	channelTitles := api.podcastChannelTitles(ctx, episodes)
+
 	resp := make([]responses.PodcastEpisode, len(episodes))
 	for i, ep := range episodes {
 		resp[i] = toPodcastEpisode(ep)
+		title := channelTitles[ep.ChannelID]
+		resp[i].Child.Artist = title
+		resp[i].Child.Album = title
 	}
 	response := newResponse()
 	response.NewestPodcasts = &responses.NewestPodcasts{Episodes: resp}
@@ -92,6 +100,12 @@ func (api *Router) GetPodcastEpisode(r *http.Request) (*responses.Subsonic, erro
 	}
 	response := newResponse()
 	response.PodcastEpisode = toPodcastEpisodePointer(episode)
+	// Expose the feed name as the episode's artist, like getPodcasts does.
+	if response.PodcastEpisode != nil {
+		title := api.podcastChannelTitle(ctx, episode.ChannelID)
+		response.PodcastEpisode.Child.Artist = title
+		response.PodcastEpisode.Child.Album = title
+	}
 	return response, nil
 }
 
@@ -190,6 +204,10 @@ func toPodcastChannel(ch capabilities.PodcastChannel) responses.PodcastChannel {
 		resp.Episode = make([]responses.PodcastEpisode, len(ch.Episodes))
 		for i, ep := range ch.Episodes {
 			resp.Episode[i] = toPodcastEpisode(ep)
+			// Expose the feed name as the episode's artist so players show it while
+			// an episode plays (Subsonic Child artist/album attributes).
+			resp.Episode[i].Child.Artist = ch.Title
+			resp.Episode[i].Child.Album = ch.Title
 		}
 	}
 	return resp
@@ -197,7 +215,7 @@ func toPodcastChannel(ch capabilities.PodcastChannel) responses.PodcastChannel {
 
 func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 	resp := responses.PodcastEpisode{
-		Child:       childFromPodcastEpisode(ep),
+		Child:       childFromPodcastEpisode(ep, ""),
 		StreamId:    ep.StreamID,
 		StreamUrl:   ep.StreamURL,
 		ChannelId:   ep.ChannelID,
@@ -210,12 +228,16 @@ func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 
 // childFromPodcastEpisode builds a Subsonic Child from a podcast episode, used both
 // by getPodcasts/getNewestPodcasts and by getSong so external clients that fetch
-// episode metadata via /rest/getSong receive a playable podcast entry.
-func childFromPodcastEpisode(ep capabilities.PodcastEpisode) responses.Child {
+// episode metadata via /rest/getSong receive a playable podcast entry. The
+// channelTitle, when known, is exposed as the Child's artist so players display
+// the podcast feed name while an episode is playing.
+func childFromPodcastEpisode(ep capabilities.PodcastEpisode, channelTitle string) responses.Child {
 	return responses.Child{
 		Id:          ep.ID,
 		Title:       ep.Title,
 		IsDir:       false,
+		Artist:      channelTitle,
+		Album:       channelTitle,
 		Year:        ep.Year,
 		Genre:       ep.Genre,
 		CoverArt:    episodeCoverArt(ep),
@@ -235,6 +257,41 @@ func toPodcastEpisodePointer(ep *capabilities.PodcastEpisode) *responses.Podcast
 	}
 	r := toPodcastEpisode(*ep)
 	return &r
+}
+
+// podcastChannelTitle resolves the title (feed name) of a podcast channel by ID.
+// It returns an empty string when the channel cannot be resolved; callers expose it
+// as the episode's artist so players display the feed name during playback.
+func (api *Router) podcastChannelTitle(ctx context.Context, channelID string) string {
+	if api.podcast == nil || channelID == "" {
+		return ""
+	}
+	ch, err := api.podcast.GetChannel(ctx, channelID, false)
+	if err != nil || ch == nil {
+		return ""
+	}
+	return ch.Title
+}
+
+// podcastChannelTitles resolves the titles of the channels the given episodes
+// belong to, returning a channelID-to-title map. Channels that cannot be
+// resolved are simply absent from the map.
+func (api *Router) podcastChannelTitles(ctx context.Context, episodes []capabilities.PodcastEpisode) map[string]string {
+	ids := make([]string, 0, len(episodes))
+	seen := map[string]bool{}
+	for _, ep := range episodes {
+		if ep.ChannelID != "" && !seen[ep.ChannelID] {
+			seen[ep.ChannelID] = true
+			ids = append(ids, ep.ChannelID)
+		}
+	}
+	titles := make(map[string]string, len(ids))
+	for _, id := range ids {
+		if t := api.podcastChannelTitle(ctx, id); t != "" {
+			titles[id] = t
+		}
+	}
+	return titles
 }
 
 // podcastCoverArt builds a resolvable artwork id for a podcast channel. Plugin coverArt

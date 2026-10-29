@@ -158,6 +158,10 @@ var _ = Describe("Podcasts", func() {
 			Expect(ch.Episode[0].StreamId).To(Equal("ep-1"))
 			Expect(ch.Episode[0].StreamUrl).To(Equal("https://example.com/episode1.mp3"))
 			Expect(ch.Episode[0].Status).To(Equal("completed"))
+			// The feed name is exposed as the episode's artist and album so players
+			// display it while the episode plays.
+			Expect(ch.Episode[0].Artist).To(Equal("Test Channel"))
+			Expect(ch.Episode[0].Album).To(Equal("Test Channel"))
 		})
 
 		It("emits a pc- coverArt for channels and episodes regardless of plugin coverArt id", func() {
@@ -194,6 +198,9 @@ var _ = Describe("Podcasts", func() {
 			Expect(resp.NewestPodcasts).ToNot(BeNil())
 			Expect(resp.NewestPodcasts.Episodes).To(HaveLen(1))
 			Expect(resp.NewestPodcasts.Episodes[0].Id).To(Equal("ep-1"))
+			// The feed name is resolved and exposed as the episode's artist.
+			Expect(resp.NewestPodcasts.Episodes[0].Artist).To(Equal("Test Channel"))
+			Expect(resp.NewestPodcasts.Episodes[0].Album).To(Equal("Test Channel"))
 		})
 
 		It("getPodcastEpisode returns the episode", func() {
@@ -208,6 +215,9 @@ var _ = Describe("Podcasts", func() {
 			Expect(resp.PodcastEpisode).ToNot(BeNil())
 			Expect(resp.PodcastEpisode.Id).To(Equal("ep-1"))
 			Expect(resp.PodcastEpisode.ChannelId).To(Equal("ch-1"))
+			// The feed name is resolved and exposed as the episode's artist.
+			Expect(resp.PodcastEpisode.Artist).To(Equal("Test Channel"))
+			Expect(resp.PodcastEpisode.Album).To(Equal("Test Channel"))
 		})
 
 		It("createPodcastChannel delegates to the engine", func() {
