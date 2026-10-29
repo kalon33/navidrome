@@ -164,6 +164,32 @@ var _ = Describe("Podcasts", func() {
 			Expect(ch.Episode[0].Album).To(Equal("Test Channel"))
 		})
 
+		It("keeps an episode-provided artist instead of the feed name", func() {
+			engine.channels = []capabilities.PodcastChannel{
+				{
+					ID:     "ch-1",
+					URL:    "https://example.com/feed.xml",
+					Title:  "Test Channel",
+					Status: capabilities.PodcastStatusCompleted,
+					Episodes: []capabilities.PodcastEpisode{
+						{
+							ID:        "ep-1",
+							ChannelID: "ch-1",
+							Title:     "Episode 1",
+							Artist:    "Guest Author",
+							Status:    capabilities.PodcastStatusCompleted,
+						},
+						},
+				},
+			}
+			resp, err := api.GetPodcasts(newPodcastRequest("getPodcasts", "includeEpisodes", "true"))
+			Expect(err).ToNot(HaveOccurred())
+			ch := resp.Podcasts.Channels[0]
+			// The episode's own artist wins over the channel (feed) title.
+			Expect(ch.Episode[0].Artist).To(Equal("Guest Author"))
+			Expect(ch.Episode[0].Album).To(Equal("Guest Author"))
+		})
+
 		It("emits a pc- coverArt for channels and episodes regardless of plugin coverArt id", func() {
 			engine.channels = []capabilities.PodcastChannel{
 				{

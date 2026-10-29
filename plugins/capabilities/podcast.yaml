@@ -297,6 +297,12 @@ components:
                 publishDate:
                     type: string
                     description: PublishDate is the publication date as an ISO 8601 string.
+                artist:
+                    type: string
+                    description: |-
+                        Artist is the episode's own artist/author (e.g. the RSS itunes:author
+                        or id3 artist tag), when the feed provides one. When empty, Navidrome
+                        falls back to the channel's title (the feed name).
                 status:
                     type: string
                     description: Status is the episode status.

@@ -68,15 +68,14 @@ func (api *Router) GetNewestPodcasts(r *http.Request) (*responses.Subsonic, erro
 	}
 
 	// Resolve the feed names once so each episode carries its channel's title as
-	// its artist, keeping the player display consistent with getPodcasts.
+	// its artist fallback, keeping the player display consistent with getPodcasts.
+	// Episodes that already provide their own artist keep it.
 	channelTitles := api.podcastChannelTitles(ctx, episodes)
 
 	resp := make([]responses.PodcastEpisode, len(episodes))
 	for i, ep := range episodes {
 		resp[i] = toPodcastEpisode(ep)
-		title := channelTitles[ep.ChannelID]
-		resp[i].Child.Artist = title
-		resp[i].Child.Album = title
+		applyEpisodeArtist(&resp[i].Child, ep, channelTitles[ep.ChannelID])
 	}
 	response := newResponse()
 	response.NewestPodcasts = &responses.NewestPodcasts{Episodes: resp}
@@ -100,11 +99,11 @@ func (api *Router) GetPodcastEpisode(r *http.Request) (*responses.Subsonic, erro
 	}
 	response := newResponse()
 	response.PodcastEpisode = toPodcastEpisodePointer(episode)
-	// Expose the feed name as the episode's artist, like getPodcasts does.
+	// Expose the feed name as the episode's artist fallback, like getPodcasts;
+	// an episode-provided artist wins over the feed name.
 	if response.PodcastEpisode != nil {
 		title := api.podcastChannelTitle(ctx, episode.ChannelID)
-		response.PodcastEpisode.Child.Artist = title
-		response.PodcastEpisode.Child.Album = title
+		applyEpisodeArtist(&response.PodcastEpisode.Child, *episode, title)
 	}
 	return response, nil
 }
@@ -204,10 +203,9 @@ func toPodcastChannel(ch capabilities.PodcastChannel) responses.PodcastChannel {
 		resp.Episode = make([]responses.PodcastEpisode, len(ch.Episodes))
 		for i, ep := range ch.Episodes {
 			resp.Episode[i] = toPodcastEpisode(ep)
-			// Expose the feed name as the episode's artist so players show it while
-			// an episode plays (Subsonic Child artist/album attributes).
-			resp.Episode[i].Child.Artist = ch.Title
-			resp.Episode[i].Child.Album = ch.Title
+			// Expose the feed name as the episode's artist fallback so players show it
+			// while an episode plays; an episode-provided artist wins over the feed name.
+			applyEpisodeArtist(&resp.Episode[i].Child, ep, ch.Title)
 		}
 	}
 	return resp
@@ -229,15 +227,14 @@ func toPodcastEpisode(ep capabilities.PodcastEpisode) responses.PodcastEpisode {
 // childFromPodcastEpisode builds a Subsonic Child from a podcast episode, used both
 // by getPodcasts/getNewestPodcasts and by getSong so external clients that fetch
 // episode metadata via /rest/getSong receive a playable podcast entry. The
-// channelTitle, when known, is exposed as the Child's artist so players display
+// channelTitle is used as a fallback for the Child's artist/album when the episode
+// does not already carry its own artist (some podcasts do), so players display
 // the podcast feed name while an episode is playing.
 func childFromPodcastEpisode(ep capabilities.PodcastEpisode, channelTitle string) responses.Child {
-	return responses.Child{
+	child := responses.Child{
 		Id:          ep.ID,
 		Title:       ep.Title,
 		IsDir:       false,
-		Artist:      channelTitle,
-		Album:       channelTitle,
 		Year:        ep.Year,
 		Genre:       ep.Genre,
 		CoverArt:    episodeCoverArt(ep),
@@ -248,6 +245,23 @@ func childFromPodcastEpisode(ep capabilities.PodcastEpisode, channelTitle string
 		BitRate:     ep.BitRate,
 		Path:        ep.Path,
 		Type:        "podcast",
+	}
+	applyEpisodeArtist(&child, ep, channelTitle)
+	return child
+}
+
+// applyEpisodeArtist fills the Subsonic Child artist/album attributes so players
+// display the feed name while an episode plays. An artist provided by the
+// episode itself (some podcasts carry one, e.g. via the RSS itunes:author tag)
+// always wins; the channel title (the feed name) is only used as a fallback.
+func applyEpisodeArtist(child *responses.Child, ep capabilities.PodcastEpisode, channelTitle string) {
+	artist := ep.Artist
+	if artist == "" {
+		artist = channelTitle
+	}
+	if artist != "" {
+		child.Artist = artist
+		child.Album = artist
 	}
 }
 

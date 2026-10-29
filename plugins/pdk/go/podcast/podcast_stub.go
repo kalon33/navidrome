@@ -171,6 +171,10 @@ type PodcastEpisode struct {
 	Description string `json:"description,omitempty"`
 	// PublishDate is the publication date as an ISO 8601 string.
 	PublishDate string `json:"publishDate,omitempty"`
+	// Artist is the episode's own artist/author (e.g. the RSS itunes:author or
+	// id3 artist tag), when the feed provides one. When empty, Navidrome falls
+	// back to the channel's title (the feed name).
+	Artist string `json:"artist,omitempty"`
 	// Status is the episode status.
 	Status PodcastStatus `json:"status"`
 	// ErrorMessage is an error message, if status is "error".

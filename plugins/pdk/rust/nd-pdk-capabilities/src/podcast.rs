@@ -90,6 +90,11 @@ pub struct PodcastEpisode {
     /// PublishDate is the publication date as an ISO 8601 string.
     #[serde(default)]
     pub publish_date: Option<String>,
+    /// Artist is the episode's own artist/author (e.g. the RSS itunes:author or
+    /// id3 artist tag), when the feed provides one. When empty, Navidrome falls
+    /// back to the channel's title (the feed name).
+    #[serde(default)]
+    pub artist: Option<String>,
     /// Status is the episode status.
     #[serde(default)]
     pub status: PodcastStatus,

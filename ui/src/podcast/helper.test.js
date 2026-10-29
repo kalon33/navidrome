@@ -160,7 +160,11 @@ describe('podcast helper', () => {
       expect(song.album).toBe('Show')
     })
     it('falls back to a generic artist when no feed name is known', () => {
-      const song = songFromPodcastEpisode({ id: 'ep-1', streamId: 'ep-1', title: 'Episode 1' })
+      const song = songFromPodcastEpisode({
+        id: 'ep-1',
+        streamId: 'ep-1',
+        title: 'Episode 1',
+      })
       expect(song.artist).toBe('Podcast')
       expect(song.album).toBe('Episode 1')
     })
