@@ -67,7 +67,7 @@ func (api *Router) getArtistIndex(r *http.Request, libIds []int, ifModifiedSince
 	}
 
 	res := &responses.Indexes{
-		IgnoredArticles: conf.Server.IgnoredArticles,
+		IgnoredArticles: conf.Server().IgnoredArticles,
 		LastModified:    modified,
 	}
 
@@ -86,7 +86,7 @@ func (api *Router) getArtistIndexID3(r *http.Request, libIds []int, ifModifiedSi
 	}
 
 	res := &responses.Artists{
-		IgnoredArticles: conf.Server.IgnoredArticles,
+		IgnoredArticles: conf.Server().IgnoredArticles,
 		LastModified:    modified,
 	}
 
@@ -439,7 +439,7 @@ func (api *Router) buildArtistDirectory(ctx context.Context, artist *model.Artis
 	}
 	dir.AlbumCount = getArtistAlbumCount(artist)
 	dir.UserRating = int32(artist.Rating)
-	if conf.Server.Subsonic.EnableAverageRating {
+	if conf.Server().Subsonic.EnableAverageRating {
 		dir.AverageRating = artist.AverageRating
 	}
 	if artist.Starred {
@@ -479,7 +479,7 @@ func (api *Router) buildAlbumDirectory(ctx context.Context, album *model.Album) 
 		dir.Played = album.PlayDate
 	}
 	dir.UserRating = int32(album.Rating)
-	if conf.Server.Subsonic.EnableAverageRating {
+	if conf.Server().Subsonic.EnableAverageRating {
 		dir.AverageRating = album.AverageRating
 	}
 	dir.SongCount = int32(album.SongCount)
@@ -510,14 +510,13 @@ func (api *Router) buildAlbum(ctx context.Context, album *model.Album, mfs model
 // "<id>-raw.flc" is reduced to "<id>". Ids without such a suffix are returned
 // unchanged.
 func stripTranscodeSuffix(id string) string {
-	dash := strings.LastIndex(id, "-")
-	if dash < 0 {
+	base, suffix, found := strings.CutLast(id, "-")
+	if !found {
 		return id
 	}
-	suffix := id[dash+1:]
 	dot := strings.Index(suffix, ".")
 	if dot <= 0 || dot == len(suffix)-1 {
 		return id
 	}
-	return id[:dash]
+	return base
 }

@@ -43,7 +43,7 @@ var _ = Describe("Podcast artwork", func() {
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
+		ctx = GinkgoT().Context()
 		img := image.NewRGBA(image.Rect(0, 0, 2, 2))
 		img.Set(0, 0, color.RGBA{R: 255})
 		buf := bytes.Buffer{}
@@ -54,7 +54,7 @@ var _ = Describe("Podcast artwork", func() {
 			_, _ = w.Write(imgBytes)
 		}))
 		cover = &fakePodcastCover{url: server.URL}
-		conf.Server.CacheFolder = conf.NewDir(GinkgoT().TempDir())
+		conf.Update(func(c *conf.Options) { c.CacheFolder = conf.NewDir(GinkgoT().TempDir()) })
 		ds := &tests.MockDataStore{}
 		ffm := tests.NewMockFFmpeg("")
 		store := NewImageStore(GinkgoT().TempDir())

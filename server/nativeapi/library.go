@@ -12,7 +12,7 @@ import (
 	"github.com/navidrome/navidrome/model"
 )
 
-// User-library association endpoints (admin only)
+// addUserLibraryRoute adds the user-library association endpoints (admin only)
 func (api *Router) addUserLibraryRoute(r chi.Router) {
 	r.Route("/user/{id}/library", func(r chi.Router) {
 		r.Use(parseUserIDMiddleware)
@@ -21,7 +21,9 @@ func (api *Router) addUserLibraryRoute(r chi.Router) {
 	})
 }
 
-// Middleware to parse user ID from URL
+type userIDKey struct{}
+
+// parseUserIDMiddleware parses the user ID from the URL
 func parseUserIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID := chi.URLParam(r, "id")
@@ -29,7 +31,7 @@ func parseUserIDMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Invalid user ID", http.StatusBadRequest)
 			return
 		}
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx := context.WithValue(r.Context(), userIDKey{}, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -38,7 +40,7 @@ func parseUserIDMiddleware(next http.Handler) http.Handler {
 
 func getUserLibraries(service core.Library) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Context().Value("userID").(string)
+		userID := r.Context().Value(userIDKey{}).(string)
 
 		libraries, err := service.GetUserLibraries(r.Context(), userID)
 		if err != nil {
@@ -60,7 +62,7 @@ func getUserLibraries(service core.Library) http.HandlerFunc {
 
 func setUserLibraries(service core.Library) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Context().Value("userID").(string)
+		userID := r.Context().Value(userIDKey{}).(string)
 
 		var request struct {
 			LibraryIDs []int `json:"libraryIds"`

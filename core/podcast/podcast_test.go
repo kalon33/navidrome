@@ -82,7 +82,7 @@ var _ = Describe("Podcast", func() {
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
+		ctx = GinkgoT().Context()
 		provider = &mockProvider{}
 		loader = &mockPluginLoader{provider: provider, loadOk: true}
 	})

@@ -5,9 +5,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/deluan/rest"
 	"github.com/navidrome/navidrome/conf"
@@ -16,6 +16,18 @@ import (
 	"github.com/navidrome/navidrome/model"
 	"github.com/navidrome/navidrome/model/request"
 )
+
+// MaxTracksPerRequest is how many tracks one API request may add or set; 0 means no limit.
+// Native album, artist and disc ids are not counted: their expansion is bounded by the library size.
+func MaxTracksPerRequest() int {
+	return max(conf.Server().DevMaxPlaylistTracksPerRequest, 0)
+}
+
+// TooManyTracks reports whether n tracks exceed MaxTracksPerRequest.
+func TooManyTracks(n int) bool {
+	limit := MaxTracksPerRequest()
+	return limit > 0 && n > limit
+}
 
 type Playlists interface {
 	// Reads
@@ -74,11 +86,11 @@ func NewPlaylists(ds model.DataStore, imgUpload ImageUploadService) Playlists {
 }
 
 func InPath(folder model.Folder) bool {
-	if conf.Server.PlaylistsPath == "" {
+	if conf.Server().PlaylistsPath == "" {
 		return true
 	}
 	rel, _ := filepath.Rel(folder.LibraryPath, folder.AbsolutePath())
-	for path := range strings.SplitSeq(conf.Server.PlaylistsPath, string(filepath.ListSeparator)) {
+	for path := range strings.SplitSeq(conf.Server().PlaylistsPath, string(filepath.ListSeparator)) {
 		if match, _ := doublestar.Match(path, rel); match {
 			return true
 		}
@@ -190,14 +202,21 @@ func (s *playlists) Update(ctx context.Context, playlistID string,
 
 		if len(idxToRemove) > 0 {
 			tracksRepo := repo.Tracks(ctx, playlistID, false)
-			// Convert 0-based indices to 1-based position IDs and delete them directly,
-			// avoiding the need to load all tracks into memory.
-			positions := make([]string, len(idxToRemove))
-			for i, idx := range idxToRemove {
-				positions[i] = strconv.Itoa(idx + 1)
-			}
-			if err := tracksRepo.Delete(ctx, positions...); err != nil {
+			// Indexes refer to GetWithTracks' list, which hides missing and inaccessible-library tracks.
+			visible, err := tracksRepo.GetPositionIDs(ctx, model.QueryOptions{Sort: "id", Filters: squirrel.Eq{"missing": false}})
+			if err != nil {
 				return err
+			}
+			positions := make([]string, 0, len(idxToRemove))
+			for _, idx := range idxToRemove {
+				if idx >= 0 && idx < len(visible) {
+					positions = append(positions, visible[idx])
+				}
+			}
+			if len(positions) > 0 {
+				if err := tracksRepo.Delete(ctx, positions...); err != nil {
+					return err
+				}
 			}
 			if len(idsToAdd) > 0 {
 				if _, err := tracksRepo.Add(ctx, idsToAdd); err != nil {

@@ -50,6 +50,8 @@ func TestSubsonicE2E(t *testing.T) {
 	RunSpecs(t, "Subsonic API E2E Suite")
 }
 
+var _ = configtest.RestoreAfterEachSpec()
+
 // Easy aliases for the storagetest package
 type _t = map[string]any
 
@@ -276,9 +278,8 @@ func doRawReqWithUser(user model.User, endpoint string, params ...string) *httpt
 
 // buildReq creates a GET request with Subsonic auth params (u, p, v, c, f=json).
 func buildReq(user model.User, endpoint string, params ...string) *http.Request {
-	if len(params)%2 != 0 {
-		panic("buildReq: odd number of parameters")
-	}
+	GinkgoHelper()
+	Expect(len(params)%2).To(BeZero(), "buildReq: odd number of parameters")
 	q := url.Values{}
 	q.Add("u", user.UserName)
 	q.Add("p", "password")
@@ -288,13 +289,13 @@ func buildReq(user model.User, endpoint string, params ...string) *http.Request 
 	for i := 0; i < len(params); i += 2 {
 		q.Add(params[i], params[i+1])
 	}
-	return httptest.NewRequest("GET", "/"+endpoint+"?"+q.Encode(), nil)
+	return httptest.NewRequest(http.MethodGet, "/"+endpoint+"?"+q.Encode(), nil)
 }
 
 // buildPostReq creates a POST request with a JSON body and Subsonic auth params in the query string.
 func buildPostReq(user model.User, endpoint string, body string, params ...string) *http.Request {
 	getReq := buildReq(user, endpoint, params...)
-	r := httptest.NewRequest("POST", getReq.URL.RequestURI(), bytes.NewReader([]byte(body)))
+	r := httptest.NewRequest(http.MethodPost, getReq.URL.RequestURI(), bytes.NewReader([]byte(body)))
 	r.Header.Set("Content-Type", "application/json")
 	return r
 }
@@ -388,9 +389,11 @@ var (
 var _ = BeforeSuite(func() {
 	ctx = request.WithUser(GinkgoT().Context(), adminUser)
 
-	conf.Server.MusicFolder = "fake:///music"
-	conf.Server.LyricsPriority = "embedded,.lrc,.srt,.yaml"
-	conf.Server.DevExternalScanner = false
+	conf.Update(func(c *conf.Options) {
+		c.MusicFolder = "fake:///music"
+		c.LyricsPriority = "embedded,.lrc,.srt,.yaml"
+		c.DevExternalScanner = false
+	})
 
 	buildTestFS()
 	goldenDB = harness.SetupDB(ctx, &adminUser, &regularUser)
@@ -410,15 +413,17 @@ var _ = AfterSuite(func() {
 func setupTestDB() {
 	ctx = request.WithUser(GinkgoT().Context(), adminUser)
 
-	DeferCleanup(configtest.SetupConfig())
+	DeferCleanup(conf.SnapshotConfig())
 	DeferCleanup(func() {
 		// Wait for any background scan (e.g. from startScan endpoint) to finish
-		// before config cleanup runs, to avoid a data race on conf.Server.
+		// before the next spec starts.
 		Eventually(scanner.IsScanning).Should(BeFalse())
 	})
-	conf.Server.MusicFolder = "fake:///music"
-	conf.Server.DevExternalScanner = false
-	conf.Server.DevEnableMediaFileProbe = false
+	conf.Update(func(c *conf.Options) {
+		c.MusicFolder = "fake:///music"
+		c.DevExternalScanner = false
+		c.DevEnableMediaFileProbe = false
+	})
 
 	// Restore DB to golden state (no scan needed)
 	goldenDB.Restore()

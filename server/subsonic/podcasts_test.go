@@ -71,7 +71,7 @@ func newPodcastRequest(endpoint string, params ...string) *http.Request {
 	for i := 0; i < len(params); i += 2 {
 		v.Set(params[i], params[i+1])
 	}
-	r := httptest.NewRequest("GET", "/rest/"+endpoint+"?"+v.Encode(), nil)
+	r := httptest.NewRequest(http.MethodGet, "/rest/"+endpoint+"?"+v.Encode(), nil)
 	return r
 }
 

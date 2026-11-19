@@ -3,10 +3,9 @@ package stream
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 
 	"github.com/navidrome/navidrome/conf"
-	"github.com/navidrome/navidrome/conf/configtest"
 	"github.com/navidrome/navidrome/core/auth"
 	"github.com/navidrome/navidrome/core/ffmpeg"
 	"github.com/navidrome/navidrome/model"
@@ -27,7 +26,8 @@ func withProbe(mf *model.MediaFile) *model.MediaFile {
 		BitDepth:   gg.V(mf.BitDepth),
 		Channels:   mf.Channels,
 	}
-	data, _ := json.Marshal(probe)
+	data, err := json.Marshal(probe)
+	Expect(err).ToNot(HaveOccurred())
 	mf.ProbeData = string(data)
 	return mf
 }
@@ -792,8 +792,7 @@ var _ = Describe("Decider", func() {
 			)
 
 			It("normalizes DSD sample rate from tags when there is no probe data", func() {
-				DeferCleanup(configtest.SetupConfig())
-				conf.Server.DevEnableMediaFileProbe = false
+				conf.Update(func(c *conf.Options) { c.DevEnableMediaFileProbe = false })
 
 				mf := &model.MediaFile{ID: "1", Suffix: "dsf", Codec: "DSD", BitRate: 5644, Channels: 2, SampleRate: 2822400, BitDepth: new(1)}
 				ci := &ClientInfo{
@@ -1283,7 +1282,7 @@ var _ = Describe("Decider", func() {
 			mf := withProbe(&model.MediaFile{ID: "probe-2", Suffix: "flac", Codec: "FLAC", BitRate: 1000, Channels: 2})
 
 			// Set error on mock — if ffprobe were called, this would fail
-			ff.Error = fmt.Errorf("should not be called")
+			ff.Error = errors.New("should not be called")
 
 			svc := NewTranscodeDecider(ds, ff).(*deciderService)
 			probe, err := svc.ensureProbed(ctx, mf)
@@ -1293,7 +1292,7 @@ var _ = Describe("Decider", func() {
 
 		It("returns error when ffprobe fails", func() {
 			mf := &model.MediaFile{ID: "probe-3", Suffix: "mp3"}
-			ff.Error = fmt.Errorf("ffprobe not found")
+			ff.Error = errors.New("ffprobe not found")
 
 			svc := NewTranscodeDecider(ds, ff).(*deciderService)
 			_, err := svc.ensureProbed(ctx, mf)
@@ -1303,8 +1302,7 @@ var _ = Describe("Decider", func() {
 		})
 
 		It("skips ffprobe when DevEnableMediaFileProbe is false", func() {
-			DeferCleanup(configtest.SetupConfig())
-			conf.Server.DevEnableMediaFileProbe = false
+			conf.Update(func(c *conf.Options) { c.DevEnableMediaFileProbe = false })
 
 			mf := &model.MediaFile{ID: "probe-4", Suffix: "mp3"}
 			// Set a result — if ffprobe were called, ProbeData would be populated

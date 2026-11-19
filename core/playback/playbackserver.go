@@ -7,6 +7,7 @@ package playback
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/navidrome/navidrome/conf"
@@ -38,7 +39,7 @@ func GetInstance(ds model.DataStore) PlaybackServer {
 func (ps *playbackServer) Run(ctx context.Context) error {
 	ps.ctx = &ctx
 
-	devices, err := ps.initDeviceStatus(ctx, conf.Server.Jukebox.Devices, conf.Server.Jukebox.Default)
+	devices, err := ps.initDeviceStatus(ctx, conf.Server().Jukebox.Devices, conf.Server().Jukebox.Default)
 	if err != nil {
 		return err
 	}
@@ -106,7 +107,7 @@ func (ps *playbackServer) getDefaultDevice() (*playbackDevice, error) {
 			return &ps.playbackDevices[idx], nil
 		}
 	}
-	return nil, fmt.Errorf("no default device found")
+	return nil, errors.New("no default device found")
 }
 
 // GetMediaFile retrieves the MediaFile given by the id parameter
