@@ -55,7 +55,7 @@ var _ = Describe("Podcast artwork", func() {
 		}))
 		cover = &fakePodcastCover{url: server.URL}
 		conf.Update(func(c *conf.Options) { c.CacheFolder = conf.NewDir(GinkgoT().TempDir()) })
-		ds := &tests.MockDataStore{}
+		ds := newTestDS(ctx)
 		ffm := tests.NewMockFFmpeg("")
 		store := NewImageStore(GinkgoT().TempDir())
 		imgCache := cache.NewFileCache("PodcastTest", "100MB", "images", 0,
@@ -92,7 +92,7 @@ var _ = Describe("Podcast artwork", func() {
 	})
 
 	It("returns unavailable when no resolver is configured", func() {
-		ds := &tests.MockDataStore{}
+		ds := newTestDS(ctx)
 		noPodCache := cache.NewFileCache("NoPod", "1MB", "images", 0,
 			func(context.Context, cache.Item) (io.Reader, error) { return nil, nil })
 		Eventually(func() bool { return noPodCache.Available(ctx) }, 10*time.Second).Should(BeTrue())
